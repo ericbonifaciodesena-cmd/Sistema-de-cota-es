@@ -913,8 +913,6 @@
     function parseTokioMarine(text) {
 
       // ── Helpers internos ──────────────────────────────────────────
-
-      // Preenche campo de formulário por id
       function fill(id, value) {
         if (!value) return;
         const el = document.getElementById(id);
@@ -922,8 +920,8 @@
         if (el.tagName === 'SELECT') {
           const v = value.toLowerCase();
           for (const opt of el.options) {
-            if (opt.value.toLowerCase().includes(v.slice(0, 5)) ||
-                v.includes(opt.value.toLowerCase().slice(0, 5))) {
+            if (opt.value.toLowerCase().startsWith(v.slice(0, 5)) ||
+                v.startsWith(opt.value.toLowerCase().slice(0, 5))) {
               el.value = opt.value; return;
             }
           }
@@ -932,169 +930,186 @@
         }
       }
 
-      // Marca/desmarca checkbox por id
       function check(id, val) {
         const el = document.getElementById(id);
         if (el) el.checked = !!val;
       }
 
-      // Converte DD/MM/YYYY → YYYY-MM-DD (input type=date)
       function toISO(s) {
         const m = (s || '').match(/(\d{2})\/(\d{2})\/(\d{4})/);
         return m ? `${m[3]}-${m[2]}-${m[1]}` : '';
       }
 
-      // Retorna 1º grupo de regex aplicada ao texto completo
-      function rx(re, g) { const m = text.match(re); return m ? (m[g || 1] || '').trim() : ''; }
+      function rx(re, g) {
+        const m = text.match(re);
+        return m ? (m[g || 1] || '').trim() : '';
+      }
 
-      // Testa se label está seguido de 'Não contratada' dentro de ~120 chars
-      function naoContratada(label) {
+      // Verifica se cobertura está ativa: âncora existe e NÃO é seguida de 'Não contratada'
+      function coberturaAtiva(label) {
         const idx = text.indexOf(label);
-        if (idx < 0) return true;
-        return /Não contratada/i.test(text.slice(idx, idx + 120));
+        if (idx < 0) return false;
+        return !text.slice(idx, idx + 100).includes('Não contratada');
+      }
+
+      // Maior parcela Sem Juros num bloco de texto, respeitando limite máximo
+      function maiorSemJuros(bloco, max) {
+        let maxN = 0, parcelas = '', valor = '';
+        // "12 Parcelas Sem Juros R$ 166,90" ou "12x Sem Juros R$ 166,90"
+        const re1 = /(\d+)\s*(?:x|Parcelas?)\s+Sem Juros\s+R\$\s*([\d.,]+)/gi;
+        // "12x R$ 166,90 Sem Juros"
+        const re2 = /(\d+)\s*(?:x|Parcelas?)\s+R\$\s*([\d.,]+)\s+Sem Juros/gi;
+        for (const re of [re1, re2]) {
+          let m;
+          re.lastIndex = 0;
+          while ((m = re.exec(bloco)) !== null) {
+            const n = parseInt(m[1]);
+            if (n > maxN && n <= max) { maxN = n; parcelas = m[1]; valor = m[2]; }
+          }
+        }
+        return { parcelas, valor };
       }
 
       // ── IDENTIFICAÇÃO ──────────────────────────────────────────────
       if (text.includes('Tokio Marine')) fill('seguradora', 'Tokio Marine');
 
-      fill('numeroCotacao', rx(/Nº Cotação[:\s]+([0-9]+)/));
-      fill('validadeCotacao', toISO(rx(/Validade cotação[:\s]+([0-9/]+)/)));
+      fill('numeroCotacao', rx(/Nº Cotação[:\s]+(\d+)/));
+      fill('validadeCotacao', toISO(rx(/Validade cotação[:\s]+([\d/]+)/)));
 
-      const vig = text.match(/Vigência[:\s]+([0-9/]+)\s+a\s+([0-9/]+)/);
-      if (vig) { fill('vigenciaInicio', toISO(vig[1])); fill('vigenciaTermino', toISO(vig[2])); }
+      // Vigência: duas datas DD/MM/AAAA separadas por ' a '
+      const vigM = text.match(/(\d{2}\/\d{2}\/\d{4})\s+a\s+(\d{2}\/\d{2}\/\d{4})/);
+      if (vigM) { fill('vigenciaInicio', toISO(vigM[1])); fill('vigenciaTermino', toISO(vigM[2])); }
 
       // ── SEGURADO ───────────────────────────────────────────────────
-      // Nome: texto em maiúsculas/título logo após 'Proponente'
-      const nomeM = text.match(/Proponente\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕÇ][^\n]{3,60?})(?=\s{2,}|CPF|Data|\n)/);
-      if (nomeM) fill('nome', nomeM[1].trim());
+      // CPF: formato 000.000.000-00
+      const cpfVal = rx(/(\d{3}\.\d{3}\.\d{3}-\d{2})/);
+      fill('cpf', cpfVal);
 
-      fill('cpf', rx(/CPF\/CNPJ[:\s]+([0-9.\-/]+)/));
+      // Nome: sequência de palavras com inicial maiúscula imediatamente antes do CPF
+      if (cpfVal) {
+        const cpfIdx = text.indexOf(cpfVal);
+        const before  = text.slice(0, cpfIdx).trimEnd();
+        const nomeM   = before.match(/([A-ZÁÉÍÓÚÀÂÊÔÃÕÇ][a-záéíóúàâêôãõçA-ZÁÉÍÓÚÀÂÊÔÃÕÇ]+(?:\s+[A-ZÁÉÍÓÚÀÂÊÔÃÕÇ][a-záéíóúàâêôãõçA-ZÁÉÍÓÚÀÂÊÔÃÕÇ]+){1,6})\s*$/);
+        if (nomeM) fill('nome', nomeM[1].trim());
+      }
 
-      const ecM = text.match(/Estado Civil principal condutor\s+([^\n]{3,30?})(?=\s{2,}|\n)/);
-      if (ecM) fill('estadoCivil', ecM[1].trim());
+      // Estado civil: Solteiro/Casado/Divorciado/Viúvo após 'principal condutor'
+      const ecM = text.match(/principal condutor\s+(Solteiro|Solteira|Casado|Casada|Divorciado|Divorciada|Viúvo|Viúva)/i);
+      if (ecM) fill('estadoCivil', ecM[1]);
 
-      fill('cep', rx(/CEP de pernoite[:\s]+([0-9-]{8,9})/));
+      // Jovem condutor: 'Não e estou ciente' → Não
+      if (/Não e estou ciente/i.test(text)) {
+        fill('jovemCondutor', 'Não');
+      } else if (/Deseja contratar cobertura/i.test(text)) {
+        fill('jovemCondutor', 'Sim');
+      }
 
-      const jovM = text.match(/Deseja contratar cobertura[^\n]*\n?\s*(Sim|Não)/i);
-      if (jovM) fill('jovemCondutor', /sim/i.test(jovM[1]) ? 'Sim' : 'Não');
+      // CEP: \d{5}-\d{3} após 'pernoite'
+      const cepM = text.match(/pernoite\s+(\d{5}-\d{3})/i);
+      if (cepM) fill('cep', cepM[1]);
 
+      // Uso
       if (/Particular/i.test(text)) fill('uso', 'Particular');
 
       // ── VEÍCULO ────────────────────────────────────────────────────
-      // Modelo: valor logo após o label 'Veículo' na linha da tabela do veículo
-      const modeloM = text.match(/Veículo\s+([A-Z][^\n]{3,50?})(?=\s{2,}|\n|Placa|Ano)/);
-      if (modeloM) fill('modelo', modeloM[1].trim());
+      // Modelo: texto entre 'Fabricante' e 'Combustível'
+      const modeloM = text.match(/Fabricante\s+([\s\S]+?)\s+Combustível/i);
+      if (modeloM) fill('modelo', modeloM[1].trim().replace(/\s+/g, ' '));
 
-      fill('placa', rx(/Placa[:\s]+([A-Z]{3}[-\s]?[0-9][A-Z0-9][0-9]{2})/));
-      fill('ano', rx(/Ano modelo[:\s]+(\d{4}(?:\/\d{4})?)/));
+      // Placa: padrão clássico AAA-0000 ou mercosul AAA0A00
+      const placaM = text.match(/\b([A-Z]{3}[-]?\d[A-Z0-9]\d{2})\b/);
+      if (placaM) fill('placa', placaM[1]);
+
+      // Ano modelo: 4 dígitos após 'Ano modelo'
+      fill('ano', rx(/Ano modelo\s+(\d{4}(?:\/\d{4})?)/));
 
       // ── COBERTURAS ESSENCIAIS ──────────────────────────────────────
-      check('chkColisao',       text.includes('Colisão, Incêndio e Roubo')       && !naoContratada('Colisão, Incêndio e Roubo'));
-      check('chkDanosMat',      text.includes('RCF-V - Danos Materiais')         && !naoContratada('RCF-V - Danos Materiais'));
-      check('chkDanosCorp',     text.includes('RCF-V - Danos Corporais')         && !naoContratada('RCF-V - Danos Corporais'));
-      check('chkDanosMorais',   text.includes('RCF-V - Danos Morais')            && !naoContratada('RCF-V - Danos Morais'));
-      check('chkApp',           text.includes('APP - Morte')                     && !naoContratada('APP - Morte'));
-      check('chkCartaVerdeMat', text.includes('Carta Verde - Danos Materiais')   && !naoContratada('Carta Verde - Danos Materiais'));
-      check('chkCartaVerdeCorp',text.includes('Carta Verde - Danos Corporais')   && !naoContratada('Carta Verde - Danos Corporais'));
+      check('chkColisao',        coberturaAtiva('Colisão, Incêndio e Roubo/Furto'));
+      check('chkDanosMat',       coberturaAtiva('RCF-V - Danos Materiais'));
+      check('chkDanosCorp',      coberturaAtiva('RCF-V - Danos Corporais'));
+      check('chkDanosMorais',    coberturaAtiva('RCF-V - Danos Morais'));
+      check('chkApp',            coberturaAtiva('APP - Morte'));
+      check('chkCartaVerdeMat',  coberturaAtiva('Carta Verde - Danos Materiais'));
+      check('chkCartaVerdeCorp', coberturaAtiva('Carta Verde - Danos Corporais'));
 
       // ── COBERTURAS ADICIONAIS ──────────────────────────────────────
 
       // Assistência 24h
-      const temAssist = text.includes('Assistência 24 horas') && !naoContratada('Assistência 24 horas');
+      const temAssist = coberturaAtiva('Assistência 24 horas');
       check('chkAssistencia', temAssist);
       if (temAssist) {
-        const kmM = text.match(/Km adicional de reboque[:\s]+(\d+)/i);
+        const kmM    = text.match(/Km adicional de reboque\s+(\d+)/i);
         const kmTotal = 200 + (kmM ? parseInt(kmM[1]) : 0);
-        document.getElementById('assistenciaKm').value = kmTotal;
-        document.getElementById('lblAssistencia').value = `Assistência 24h — ${kmTotal}km`;
+        document.getElementById('assistenciaKm').value   = kmTotal;
+        document.getElementById('lblAssistencia').value  = `Assistência 24h — ${kmTotal}km`;
       }
 
-      // Vidros
-      const vidrosM = text.match(/\bVidros\b[:\s]+(Completo|Básico|Parcial)/i);
-      const temVidros = !!vidrosM;
+      // Vidros: 'Vidros Completo'
+      const temVidros = /Vidros\s+Completo/i.test(text);
       check('chkVidros', temVidros);
 
-      // Logomarca (vidros)
-      const logoM = text.match(/Logomarca[^P\n]{0,30}(Possui|Não possui)/i);
-      const temLogo = logoM && /^Possui$/i.test(logoM[1]);
+      // Logomarca: 'Logomarca (vidros) Possui'
+      const temLogo = /Logomarca\s*\(vidros\)\s+Possui/i.test(text);
       if (temVidros && temLogo) {
         check('chkLogomarca', true);
         document.getElementById('lblVidros').value = 'Vidros, faróis, lanternas e retrovisores com logomarca';
       }
 
-      // Carro reserva
-      const carroM = text.match(/Carro reserva\s+(\d+)\s*dia/i);
+      // Carro reserva: número de diárias após 'Carro reserva'
+      const carroM = text.match(/Carro reserva\s+(\d+)/i);
       if (carroM) {
         check('chkCarroReserva', true);
-        document.getElementById('carroReservaDias').value = carroM[1];
-        document.getElementById('lblCarroReserva').value = `Carro reserva — ${carroM[1]} dias`;
+        document.getElementById('carroReservaDias').value  = carroM[1];
+        document.getElementById('lblCarroReserva').value   = `Carro reserva — ${carroM[1]} dias`;
       }
 
-      // Lataria e pintura → Pequenos reparos
-      const latM = text.match(/Lataria e pintura\s+(Possui|Não possui)/i);
-      check('chkPequenosReparos', latM && /^Possui$/i.test(latM[1]));
+      // Lataria e pintura Possui → Pequenos reparos
+      check('chkPequenosReparos', /Lataria e pintura\s+Possui/i.test(text));
 
-      // Martelinho e para-choque → Troca de para-choque
-      const martM = text.match(/Martelinho e para-choque\s+(Possui|Não possui)/i);
-      check('chkParachoque', martM && /^Possui$/i.test(martM[1]));
+      // Martelinho e para-choque Possui → Troca de para-choque
+      check('chkParachoque', /Martelinho e para-choque\s+Possui/i.test(text));
 
-      // Roda, pneu e suspensão → Proteção de rodas
-      const rodaM = text.match(/Roda, pneu e suspensão\s+(Possui|Não possui)/i);
-      check('chkRodas', rodaM && /^Possui$/i.test(rodaM[1]));
+      // Roda, pneu e suspensão Possui → Proteção de rodas
+      check('chkRodas', /Roda,\s*pneu e suspensão\s+Possui/i.test(text));
 
       // ── FRANQUIAS DE SERVIÇOS ──────────────────────────────────────
-      const blocoFranq = text.match(/FRANQUIAS DE SERVIÇOS([\s\S]*?)(?=PAGAMENTO|PRÊMIO|Forma de pagamento|$)/i);
-      if (blocoFranq) {
-        const nomes = [
-          'Parabrisa','Vigia/Traseiro','Lateral',
-          'Farol Halógeno','Farol Xenon/LED','Farol Inteligente','Farol auxiliar',
-          'Lanterna Halógena','Lanterna LED','Lanterna auxiliar',
-          'Retrovisor externo','Retrovisor Interno',
-          'Teto Solar','Máquina de Vidro',
-          'Martelinho \\(teto\\)','Martelinho \\(demais peças\\)',
-          'Para-choque \\(troca\\)','Para-choque \\(reparo\\)',
-          'Lataria e pintura','Roda','Pneu e Suspensão'
-        ];
+      const franqBloco = text.match(/FRANQUIAS DE SERVIÇOS([\s\S]*?)CONDIÇÕES ESPECIAIS/i);
+      if (franqBloco) {
+        const bloco = franqBloco[1];
         const itens = [];
-        for (const nome of nomes) {
-          const m = blocoFranq[1].match(new RegExp(nome + '[:\\s]+(R\\$[\\s\\d.,]+)', 'i'));
-          if (m) itens.push(`${nome.replace(/\\\(|\\\)/g, s => s[1])}: ${m[1].trim()}`);
+        // Captura pares: nome (texto) seguido de R$ valor
+        const reP = /([A-ZÁÉÍÓÚÀÂÊÔÃÕÇa-záéíóúàâêôãõç][A-ZÁÉÍÓÚÀÂÊÔÃÕÇa-záéíóúàâêôãõç\/\s().,-]{1,48?}?)\s+R\$\s*([\d.,]+)/g;
+        let m;
+        while ((m = reP.exec(bloco)) !== null) {
+          const nome = m[1].trim().replace(/\s+/g, ' ');
+          if (nome.length >= 3) itens.push(`${nome}: R$ ${m[2]}`);
         }
         if (itens.length) document.getElementById('franquias').value = itens.join(' | ');
       }
 
       // ── PAGAMENTO ─────────────────────────────────────────────────
-      // Prêmio total = valor da linha 1x da tabela Cartão
-      const avM = text.match(/1x\s+R\$\s*([\d.,]+)/i);
+      // Prêmio total: primeiro R$ após 'à vista'
+      const avM = text.match(/à vista\s+R\$\s*([\d.,]+)/i);
       if (avM) { fill('premioTotal', 'R$ ' + avM[1]); fill('aVista', 'R$ ' + avM[1]); }
 
-      // Franquia (Indenização Parcial do Veículo)
-      const franqV = text.match(/Indenização Parcial do Veículo[\s\S]{0,80}?R\$\s*([\d.,]+)/i);
+      // Franquia — Indenização Parcial do Veículo
+      const franqV = text.match(/Indenização Parcial do Veículo.{0,80}?R\$\s*([\d.,]+)/i);
       if (franqV) fill('franquiaValor', 'R$ ' + franqV[1]);
 
-      // Cartão — maior parcela sem juros até 12x
-      const blCartao = text.match(/Cartão[\s\S]{0,1500}?(?=Débito|Boleto|$)/i)?.[0] || '';
-      let maxC = 0;
-      for (const m of blCartao.matchAll(/(\d+)x\s+R\$\s*([\d.,]+)/g)) {
-        const n = parseInt(m[1]);
-        if (n > maxC && n <= 12) { maxC = n; fill('cartaoParcelas', m[1]); fill('cartaoValor', m[2]); }
-      }
+      // Cartão: maior parcela Sem Juros até 12x
+      const blCartao = text.match(/Cartão[\s\S]{0,2000}?(?=Débito|Ficha|Boleto|$)/i)?.[0] || '';
+      const cartao = maiorSemJuros(blCartao, 12);
+      if (cartao.parcelas) { fill('cartaoParcelas', cartao.parcelas); fill('cartaoValor', cartao.valor); }
 
-      // Débito — maior parcela sem juros até 5x
-      const blDebito = text.match(/Débito[\s\S]{0,800}?(?=Boleto|$)/i)?.[0] || '';
-      let maxD = 0;
-      for (const m of blDebito.matchAll(/(\d+)x\s+R\$\s*([\d.,]+)/g)) {
-        const n = parseInt(m[1]);
-        if (n > maxD && n <= 5) { maxD = n; fill('debitoParcelas', m[1]); fill('debitoValor', m[2]); }
-      }
+      // Débito: maior parcela Sem Juros até 5x
+      const blDebito = text.match(/Débito[\s\S]{0,1000}?(?=Ficha|Boleto|$)/i)?.[0] || '';
+      const debito = maiorSemJuros(blDebito, 5);
+      if (debito.parcelas) { fill('debitoParcelas', debito.parcelas); fill('debitoValor', debito.valor); }
 
-      // Boleto — maior parcela sem juros até 5x
-      const blBoleto = text.match(/Boleto[\s\S]{0,800}/i)?.[0] || '';
-      let maxB = 0;
-      for (const m of blBoleto.matchAll(/(\d+)x\s+R\$\s*([\d.,]+)/g)) {
-        const n = parseInt(m[1]);
-        if (n > maxB && n <= 5) { maxB = n; fill('boletoParcelas', m[1]); fill('boletoValor', m[2]); }
-      }
+      // Ficha / Boleto: maior parcela Sem Juros até 5x
+      const blBoleto = text.match(/(?:Ficha|Boleto)[\s\S]{0,1000}/i)?.[0] || '';
+      const boleto = maiorSemJuros(blBoleto, 5);
+      if (boleto.parcelas) { fill('boletoParcelas', boleto.parcelas); fill('boletoValor', boleto.valor); }
 
       // ── Exibe formulário preenchido ────────────────────────────────
       toggleScreen('form');
