@@ -868,5 +868,75 @@
   </div>
   </div><!-- /formScreen -->
 
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    // ── Alternância de telas ──────────────────────────────────────
+    function toggleScreen(show) {
+      document.getElementById('uploadScreen').style.display = show === 'upload' ? 'flex'  : 'none';
+      document.getElementById('formScreen').style.display   = show === 'form'   ? 'block' : 'none';
+    }
+
+    // ── Extração de texto do PDF ──────────────────────────────────
+    async function processPDF(file) {
+      if (!file || file.type !== 'application/pdf') {
+        showError('Selecione um arquivo PDF válido.');
+        return;
+      }
+
+      showStatus('Lendo o PDF…');
+
+      try {
+        const buffer  = await file.arrayBuffer();
+        const pdfDoc  = await pdfjsLib.getDocument({ data: buffer }).promise;
+
+        let fullText = '';
+        for (let p = 1; p <= pdfDoc.numPages; p++) {
+          const page    = await pdfDoc.getPage(p);
+          const content = await page.getTextContent();
+          const pageText = content.items.map(i => i.str).join(' ');
+          fullText += pageText + '\n';
+        }
+
+        console.log('Texto extraído:\n', fullText);  // debug
+        showStatus('Texto extraído com sucesso. Parser será adicionado em seguida.');
+
+      } catch (err) {
+        showError('Erro ao processar o PDF: ' + err.message);
+        console.error(err);
+      }
+    }
+
+    // ── Helpers de UI ─────────────────────────────────────────────
+    function showStatus(msg) {
+      const el = document.getElementById('uploadStatus');
+      el.innerHTML = '<span class="spinner"></span>' + msg;
+      el.style.display = 'block';
+      document.getElementById('uploadError').style.display = 'none';
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('uploadError');
+      el.textContent = msg;
+      el.style.display = 'block';
+      document.getElementById('uploadStatus').style.display = 'none';
+    }
+
+    // ── Eventos de upload ─────────────────────────────────────────
+    document.getElementById('fileInput').addEventListener('change', e => {
+      if (e.target.files[0]) processPDF(e.target.files[0]);
+    });
+
+    const dropZone = document.getElementById('dropZone');
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      if (e.dataTransfer.files[0]) processPDF(e.dataTransfer.files[0]);
+    });
+  </script>
+
 </body>
 </html>
