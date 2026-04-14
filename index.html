@@ -193,6 +193,156 @@
       padding-left: 2px;
     }
 
+    /* ── Coberturas com campo extra ── */
+    .cobertura-item--has-extra {
+      align-items: start;
+      padding-top: 12px;
+      padding-bottom: 12px;
+    }
+
+    .cobertura-extra {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .cobertura-extra .extra-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #6b7280;
+      text-transform: none;
+      letter-spacing: 0;
+      white-space: nowrap;
+      margin-bottom: 0;
+    }
+
+    .cobertura-extra input.extra-input {
+      width: 80px;
+      padding: 5px 9px;
+      font-size: 0.85rem;
+      border: 1.5px solid #d1d5db;
+      border-radius: 5px;
+      outline: none;
+    }
+
+    .cobertura-extra input.extra-input:focus {
+      border-color: #1a3a5c;
+    }
+
+    .cobertura-extra .extra-unit {
+      font-size: 0.78rem;
+      color: #9ca3af;
+    }
+
+    .logomarca-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 5px 10px;
+      background: #f0f4f8;
+      border: 1px solid #e2e8f0;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .logomarca-wrap input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: #1a3a5c;
+      cursor: pointer;
+    }
+
+    .logomarca-wrap span {
+      font-size: 0.76rem;
+      font-weight: 500;
+      color: #374151;
+      user-select: none;
+    }
+
+    /* ── Textarea franquias ── */
+    textarea {
+      width: 100%;
+      padding: 10px 13px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      color: #1a1a2e;
+      background: #fff;
+      resize: vertical;
+      min-height: 72px;
+      outline: none;
+      line-height: 1.6;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus {
+      border-color: #1a3a5c;
+    }
+
+    .field-hint {
+      font-size: 0.70rem;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+
+    /* ── Valores da Proposta ── */
+    .pagamento-item {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border: 1.5px solid #e8edf3;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      background: #fafbfc;
+    }
+
+    .pagamento-item .pagamento-titulo {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #1a3a5c;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .pagamento-inputs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .pagamento-inputs input {
+      padding: 7px 10px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 5px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      color: #1a1a2e;
+      background: #fff;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .pagamento-inputs input:focus {
+      border-color: #1a3a5c;
+    }
+
+    .pagamento-inputs .input-parcelas { width: 52px; text-align: center; }
+    .pagamento-inputs .input-valor    { width: 110px; }
+    .pagamento-inputs .input-full     { flex: 1; min-width: 120px; }
+
+    .pagamento-inputs .sep {
+      font-size: 0.82rem;
+      color: #6b7280;
+      white-space: nowrap;
+    }
+
     /* ── Botão ── */
     .btn-gerar {
       width: 100%;
@@ -413,6 +563,155 @@
             <input type="text" class="cobertura-label-input" id="lblCartaVerdeCorp" name="lblCartaVerdeCorp"
               value="Carta Verde Danos Corporais — US$ 40.000,00">
             <div class="cobertura-hint">Marque para incluir no PDF</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── COBERTURAS ADICIONAIS ── -->
+      <div class="section">
+        <div class="section-header">Coberturas Adicionais</div>
+
+        <!-- Assistência 24h -->
+        <div class="cobertura-item cobertura-item--has-extra">
+          <input type="checkbox" class="cobertura-check" id="chkAssistencia" name="chkAssistencia">
+          <div>
+            <input type="text" class="cobertura-label-input" id="lblAssistencia" name="lblAssistencia"
+              value="Assistência 24h">
+            <div class="cobertura-extra">
+              <span class="extra-label">Km incluídos:</span>
+              <input type="text" class="extra-input" id="assistenciaKm" name="assistenciaKm" placeholder="1000">
+              <span class="extra-unit">km</span>
+            </div>
+            <div class="cobertura-hint">Marque para incluir no PDF</div>
+          </div>
+        </div>
+
+        <!-- Vidros -->
+        <div class="cobertura-item cobertura-item--has-extra">
+          <input type="checkbox" class="cobertura-check" id="chkVidros" name="chkVidros">
+          <div>
+            <input type="text" class="cobertura-label-input" id="lblVidros" name="lblVidros"
+              value="Vidros, faróis, lanternas e retrovisores">
+            <label class="logomarca-wrap" for="chkLogomarca">
+              <input type="checkbox" id="chkLogomarca" name="chkLogomarca">
+              <span>Com logomarca</span>
+            </label>
+            <div class="cobertura-hint">Marque para incluir no PDF</div>
+          </div>
+        </div>
+
+        <!-- Carro reserva -->
+        <div class="cobertura-item cobertura-item--has-extra">
+          <input type="checkbox" class="cobertura-check" id="chkCarroReserva" name="chkCarroReserva">
+          <div>
+            <input type="text" class="cobertura-label-input" id="lblCarroReserva" name="lblCarroReserva"
+              value="Carro reserva">
+            <div class="cobertura-extra">
+              <span class="extra-label">Diárias:</span>
+              <input type="text" class="extra-input" id="carroReservaDias" name="carroReservaDias" placeholder="7">
+              <span class="extra-unit">dias</span>
+            </div>
+            <div class="cobertura-hint">Marque para incluir no PDF</div>
+          </div>
+        </div>
+
+        <!-- Pequenos reparos -->
+        <div class="cobertura-item">
+          <input type="checkbox" class="cobertura-check" id="chkPequenosReparos" name="chkPequenosReparos">
+          <div>
+            <input type="text" class="cobertura-label-input" id="lblPequenosReparos" name="lblPequenosReparos"
+              value="Pequenos reparos">
+            <div class="cobertura-hint">Marque para incluir no PDF</div>
+          </div>
+        </div>
+
+        <!-- Troca de para-choque -->
+        <div class="cobertura-item">
+          <input type="checkbox" class="cobertura-check" id="chkParachoque" name="chkParachoque">
+          <div>
+            <input type="text" class="cobertura-label-input" id="lblParachoque" name="lblParachoque"
+              value="Troca de para-choque">
+            <div class="cobertura-hint">Marque para incluir no PDF</div>
+          </div>
+        </div>
+
+        <!-- Proteção de rodas/pneus/suspensão -->
+        <div class="cobertura-item">
+          <input type="checkbox" class="cobertura-check" id="chkRodas" name="chkRodas">
+          <div>
+            <input type="text" class="cobertura-label-input" id="lblRodas" name="lblRodas"
+              value="Proteção de rodas, pneus e suspensão">
+            <div class="cobertura-hint">Marque para incluir no PDF</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── FRANQUIAS ADICIONAIS ── -->
+      <div class="section">
+        <div class="section-header">Franquias Adicionais</div>
+
+        <div class="field">
+          <label for="franquias">Detalhamento das franquias</label>
+          <textarea id="franquias" name="franquias"
+            placeholder="Parabrisa: R$ 0,00 | Vigia/Traseiro: R$ 0,00 | Lateral: R$ 0,00 | Farol Halógeno: R$ 0,00 | Farol Xenon/LED: R$ 0,00 | ..."></textarea>
+          <div class="field-hint">Separe cada item com " | " — ex: Parabrisa: R$ 150,00 | Retrovisor: R$ 200,00</div>
+        </div>
+      </div>
+
+      <!-- ── VALORES DA PROPOSTA ── -->
+      <div class="section">
+        <div class="section-header">Valores da Proposta</div>
+
+        <!-- Prêmio total e franquia -->
+        <div class="row row-2" style="margin-bottom: 14px;">
+          <div class="field">
+            <label for="premioTotal">Prêmio Total</label>
+            <input type="text" id="premioTotal" name="premioTotal" placeholder="R$ 0,00">
+          </div>
+          <div class="field">
+            <label for="franquiaValor">Franquia (Indenização Parcial)</label>
+            <input type="text" id="franquiaValor" name="franquiaValor" placeholder="R$ 0,00">
+          </div>
+        </div>
+
+        <!-- À Vista -->
+        <div class="pagamento-item">
+          <span class="pagamento-titulo">À Vista</span>
+          <div class="pagamento-inputs">
+            <input type="text" class="input-full" id="aVista" name="aVista" placeholder="R$ 0,00">
+          </div>
+        </div>
+
+        <!-- Cartão -->
+        <div class="pagamento-item">
+          <span class="pagamento-titulo">Cartão</span>
+          <div class="pagamento-inputs">
+            <input type="text" class="input-parcelas" id="cartaoParcelas" name="cartaoParcelas" placeholder="12">
+            <span class="sep">x de R$</span>
+            <input type="text" class="input-valor" id="cartaoValor" name="cartaoValor" placeholder="0,00">
+            <span class="sep">(sem juros)</span>
+          </div>
+        </div>
+
+        <!-- Débito -->
+        <div class="pagamento-item">
+          <span class="pagamento-titulo">Débito</span>
+          <div class="pagamento-inputs">
+            <input type="text" class="input-parcelas" id="debitoParcelas" name="debitoParcelas" placeholder="5">
+            <span class="sep">x de R$</span>
+            <input type="text" class="input-valor" id="debitoValor" name="debitoValor" placeholder="0,00">
+            <span class="sep">(sem juros)</span>
+          </div>
+        </div>
+
+        <!-- Boleto -->
+        <div class="pagamento-item">
+          <span class="pagamento-titulo">Boleto</span>
+          <div class="pagamento-inputs">
+            <input type="text" class="input-parcelas" id="boletoParcelas" name="boletoParcelas" placeholder="5">
+            <span class="sep">x de R$</span>
+            <input type="text" class="input-valor" id="boletoValor" name="boletoValor" placeholder="0,00">
+            <span class="sep">(sem juros)</span>
           </div>
         </div>
       </div>
