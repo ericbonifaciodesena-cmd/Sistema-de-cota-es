@@ -598,10 +598,45 @@
           </div>
         </div>
 
-        <div class="row row-3">
+        <div class="row row-2">
           <div class="field">
             <label for="estadoCivil">Estado Civil</label>
             <select id="estadoCivil" name="estadoCivil">
+              <option value="">Selecione</option>
+              <option value="Solteiro(a)">Solteiro(a)</option>
+              <option value="Casado(a)">Casado(a)</option>
+              <option value="Divorciado(a)">Divorciado(a)</option>
+              <option value="Viúvo(a)">Viúvo(a)</option>
+              <option value="União Estável">União Estável</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CONDUTOR PRINCIPAL ── -->
+      <div class="section">
+        <div class="section-header">Condutor Principal</div>
+
+        <div class="field">
+          <label for="condutorNome">Nome Completo</label>
+          <input type="text" id="condutorNome" name="condutorNome" placeholder="Nome completo do condutor">
+        </div>
+
+        <div class="row row-2">
+          <div class="field">
+            <label for="condutorCpf">CPF</label>
+            <input type="text" id="condutorCpf" name="condutorCpf" placeholder="000.000.000-00">
+          </div>
+          <div class="field">
+            <label for="condutorDataNasc">Data de Nascimento</label>
+            <input type="date" id="condutorDataNasc" name="condutorDataNasc">
+          </div>
+        </div>
+
+        <div class="row row-3">
+          <div class="field">
+            <label for="condutorEstadoCivil">Estado Civil</label>
+            <select id="condutorEstadoCivil" name="condutorEstadoCivil">
               <option value="">Selecione</option>
               <option value="Solteiro(a)">Solteiro(a)</option>
               <option value="Casado(a)">Casado(a)</option>
@@ -627,7 +662,7 @@
 
         <div class="row row-2">
           <div class="field">
-            <label for="jovemCondutor">Jovem Condutor</label>
+            <label for="jovemCondutor">Autoriza jovem condutor</label>
             <select id="jovemCondutor" name="jovemCondutor">
               <option value="">Selecione</option>
               <option value="Sim">Sim</option>
@@ -980,8 +1015,8 @@
         if (el.tagName === 'SELECT') {
           const v = value.toLowerCase();
           for (const opt of el.options) {
-            if (opt.value.toLowerCase().startsWith(v.slice(0, 5)) ||
-                v.startsWith(opt.value.toLowerCase().slice(0, 5))) {
+            if (opt.value && (opt.value.toLowerCase().startsWith(v.slice(0, 5)) ||
+                v.startsWith(opt.value.toLowerCase().slice(0, 5)))) {
               el.value = opt.value; return;
             }
           }
@@ -1031,15 +1066,22 @@
       const vigM = text.match(/Vigência:\s*([\d\/]+)\s+a\s+([\d\/]+)/);
       if (vigM) { fill('vigenciaInicio', toISO(vigM[1])); fill('vigenciaTermino', toISO(vigM[2])); }
 
-      // ── SEGURADO ───────────────────────────────────────────────────
-      // Formato do texto: "...Estado Civil principal condutor NOME_SEG CPF_SEG
-      //   [Não é o Próprio Segurado] NOME_COND CPF_COND EC_COND"
+      // ── SEGURADO / CONDUTOR ────────────────────────────────────────
+      // Formato: "...Estado Civil principal condutor NOME_SEG CPF_SEG
+      //   [Não é o Próprio Segurado NOME_COND CPF_COND EC_COND]
+      //   ou [Próprio Segurado EC ...]"
+
+      // Normaliza estado civil: 'Solteiro(a)' → 'Solteiro', 'Casado(a) ou...' → 'Casado'
+      function normEC(s) {
+        return s.trim().replace(/\(a\).*/i, '').replace(/\s*ou\s+.*/i, '').trim();
+      }
+
       const hdrAnch = text.match(/Estado Civil principal condutor\s+/i);
       if (hdrAnch) {
         const hdrPos = text.search(/Estado Civil principal condutor\s/i) + hdrAnch[0].length;
         const bloco  = text.slice(hdrPos);
 
-        // Segurado: nome maiúsculas + primeiro CPF
+        // Segurado (proponente): nome em maiúsculas + primeiro CPF
         const segM = bloco.match(/([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+(\d{3}\.\d{3}\.\d{3}-\d{2})/);
         if (segM) {
           fill('nome', segM[1].trim());
@@ -1048,29 +1090,44 @@
           const afterCpf1 = bloco.slice(bloco.indexOf(segM[2]) + segM[2].length).trim();
 
           if (/^Não é o Próprio Segurado/i.test(afterCpf1)) {
-            // Condutor diferente: estado civil vem após o CPF do condutor
-            const condM = afterCpf1.match(/(\d{3}\.\d{3}\.\d{3}-\d{2})\s+((?:Solteiro|Casado|Divorciado|Viúvo|Separado)(?:\(a\))?)/i);
-            if (condM) fill('estadoCivil', condM[2]);
+            // Condutor é pessoa diferente do segurado
+            const condArea = afterCpf1.replace(/^Não é o Próprio Segurado\s*/i, '').trim();
+            // Nome + CPF + EC do condutor
+            const condM = condArea.match(/([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+(\d{3}\.\d{3}\.\d{3}-\d{2})\s+((?:Solteiro|Casado|Divorciado|Viúvo|Separado)[^\s]*)/i);
+            if (condM) {
+              fill('condutorNome', condM[1].trim());
+              fill('condutorCpf',  condM[2]);
+              fill('condutorEstadoCivil', normEC(condM[3]));
+            } else {
+              // Fallback: nome + CPF sem EC
+              const condM2 = condArea.match(/([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+(\d{3}\.\d{3}\.\d{3}-\d{2})/);
+              if (condM2) { fill('condutorNome', condM2[1].trim()); fill('condutorCpf', condM2[2]); }
+              const ecM2 = condArea.match(/\d{3}\.\d{3}\.\d{3}-\d{2}\s+((?:Solteiro|Casado|Divorciado|Viúvo|Separado)[^\s]*)/i);
+              if (ecM2) fill('condutorEstadoCivil', normEC(ecM2[1]));
+            }
           } else {
-            // Próprio Segurado: estado civil logo após o CPF do segurado
-            const ecM = afterCpf1.match(/^(?:Próprio Segurado\s+)?((?:Solteiro|Casado|Divorciado|Viúvo|Separado)(?:\(a\))?)/i);
-            if (ecM) fill('estadoCivil', ecM[1]);
-            else {
-              const ecFb = afterCpf1.match(/(Solteiro|Casado|Divorciado|Viúvo|Separado)/i);
-              if (ecFb) fill('estadoCivil', ecFb[1]);
+            // Próprio Segurado: condutor = segurado
+            fill('condutorNome', segM[1].trim());
+            fill('condutorCpf',  segM[2]);
+            // EC logo após 'Próprio Segurado' (ou direto após o CPF)
+            const ecM = afterCpf1.match(/(?:Próprio Segurado\s+)?(Solteiro|Casado|Divorciado|Viúvo|Separado)/i);
+            if (ecM) {
+              const ecNorm = normEC(ecM[1]);
+              fill('estadoCivil',         ecNorm);
+              fill('condutorEstadoCivil', ecNorm);
             }
           }
         }
       } else {
-        // Fallback: primeiro CPF e nome em maiúsculas imediatamente antes
+        // Fallback geral: primeiro CPF + nome antes dele
         const cpfFb = text.match(/(\d{3}\.\d{3}\.\d{3}-\d{2})/);
         if (cpfFb) {
-          fill('cpf', cpfFb[1]);
+          fill('cpf', cpfFb[1]); fill('condutorCpf', cpfFb[1]);
           const nomeFb = text.match(/([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+\d{3}\.\d{3}\.\d{3}-\d{2}/);
-          if (nomeFb) fill('nome', nomeFb[1].trim());
+          if (nomeFb) { fill('nome', nomeFb[1].trim()); fill('condutorNome', nomeFb[1].trim()); }
         }
-        const ecFb2 = text.match(/Próprio Segurado\s+(Solteiro|Casado|Divorciado|Viúvo|Separado)/i);
-        if (ecFb2) fill('estadoCivil', ecFb2[1]);
+        const ecFb = text.match(/Próprio Segurado\s+(Solteiro|Casado|Divorciado|Viúvo|Separado)/i);
+        if (ecFb) { fill('estadoCivil', ecFb[1]); fill('condutorEstadoCivil', ecFb[1]); }
       }
 
       // Jovem condutor
@@ -1407,6 +1464,11 @@
 
       // ── CONDUTOR PRINCIPAL ──────────────────────────────────────────
       drawSection('Condutor Principal');
+      drawRow([
+        { label: 'Nome', value: g('condutorNome') },
+        { label: 'CPF', value: g('condutorCpf') },
+        { label: 'Estado Civil', value: g('condutorEstadoCivil') }
+      ]);
       drawRow([
         { label: 'CEP de Pernoite', value: g('cep') },
         { label: 'Jovem Condutor', value: g('jovemCondutor') },
