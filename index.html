@@ -1032,20 +1032,45 @@
       if (vigM) { fill('vigenciaInicio', toISO(vigM[1])); fill('vigenciaTermino', toISO(vigM[2])); }
 
       // ── SEGURADO ───────────────────────────────────────────────────
-      // CPF
-      const cpfM = text.match(/(\d{3}\.\d{3}\.\d{3}-\d{2})/);
-      const cpfVal = cpfM ? cpfM[1] : '';
-      fill('cpf', cpfVal);
+      // Formato do texto: "...Estado Civil principal condutor NOME_SEG CPF_SEG
+      //   [Não é o Próprio Segurado] NOME_COND CPF_COND EC_COND"
+      const hdrAnch = text.match(/Estado Civil principal condutor\s+/i);
+      if (hdrAnch) {
+        const hdrPos = text.search(/Estado Civil principal condutor\s/i) + hdrAnch[0].length;
+        const bloco  = text.slice(hdrPos);
 
-      // Nome: sequência de letras maiúsculas imediatamente antes do CPF
-      const nomeM = text.match(/([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+)\s+\d{3}\.\d{3}\.\d{3}-\d{2}/);
-      if (nomeM) fill('nome', nomeM[1].trim());
+        // Segurado: nome maiúsculas + primeiro CPF
+        const segM = bloco.match(/([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+(\d{3}\.\d{3}\.\d{3}-\d{2})/);
+        if (segM) {
+          fill('nome', segM[1].trim());
+          fill('cpf',  segM[2]);
 
-      // Estado civil: após 'Próprio Segurado', normaliza para Casado/Solteiro/etc
-      const ecM = text.match(/Próprio Segurado\s+(Solteiro|Casado|Divorciado|Viúvo|Separado|Casado\(a\)[^N]+?)(?=\s+(?:Não|Sim)\s+e)/i);
-      if (ecM) {
-        const ecNorm = ecM[1].trim().replace(/\(a\).*/i, '').replace(/\s*ou\s+.*/i, '').trim();
-        fill('estadoCivil', ecNorm);
+          const afterCpf1 = bloco.slice(bloco.indexOf(segM[2]) + segM[2].length).trim();
+
+          if (/^Não é o Próprio Segurado/i.test(afterCpf1)) {
+            // Condutor diferente: estado civil vem após o CPF do condutor
+            const condM = afterCpf1.match(/(\d{3}\.\d{3}\.\d{3}-\d{2})\s+((?:Solteiro|Casado|Divorciado|Viúvo|Separado)(?:\(a\))?)/i);
+            if (condM) fill('estadoCivil', condM[2]);
+          } else {
+            // Próprio Segurado: estado civil logo após o CPF do segurado
+            const ecM = afterCpf1.match(/^(?:Próprio Segurado\s+)?((?:Solteiro|Casado|Divorciado|Viúvo|Separado)(?:\(a\))?)/i);
+            if (ecM) fill('estadoCivil', ecM[1]);
+            else {
+              const ecFb = afterCpf1.match(/(Solteiro|Casado|Divorciado|Viúvo|Separado)/i);
+              if (ecFb) fill('estadoCivil', ecFb[1]);
+            }
+          }
+        }
+      } else {
+        // Fallback: primeiro CPF e nome em maiúsculas imediatamente antes
+        const cpfFb = text.match(/(\d{3}\.\d{3}\.\d{3}-\d{2})/);
+        if (cpfFb) {
+          fill('cpf', cpfFb[1]);
+          const nomeFb = text.match(/([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+\d{3}\.\d{3}\.\d{3}-\d{2}/);
+          if (nomeFb) fill('nome', nomeFb[1].trim());
+        }
+        const ecFb2 = text.match(/Próprio Segurado\s+(Solteiro|Casado|Divorciado|Viúvo|Separado)/i);
+        if (ecFb2) fill('estadoCivil', ecFb2[1]);
       }
 
       // Jovem condutor
@@ -1169,42 +1194,53 @@
       }
 
       // ── FRANQUIAS DE SERVIÇOS ──────────────────────────────────────
-      const franqBloco = text.match(/FRANQUIAS DE SERVIÇOS([\s\S]*?)CONDIÇÕES ESPECIAIS/i);
-      if (franqBloco) {
-        const bloco = franqBloco[1];
-        const pecas = [
-          ['Parabrisa',          /Parabrisa\s+R\$\s*([\d.,]+)/i],
-          ['Vigia/Traseiro',     /Vigia\/Traseiro\s+R\$\s*([\d.,]+)/i],
-          ['Lateral',            /Lateral\s+R\$\s*([\d.,]+)/i],
-          ['Farol Halógeno',     /Farol Hal[oó]geno\s+R\$\s*([\d.,]+)/i],
-          ['Farol xenon/led',    /Farol xenon\/led\s+R\$\s*([\d.,]+)/i],
-          ['Farol Inteligente',  /Farol Inteligente\s+R\$\s*([\d.,]+)/i],
-          ['Farol auxiliar',     /Farol auxiliar\s+R\$\s*([\d.,]+)/i],
-          ['Lanterna Halógena',  /Lanterna Hal[oó]gena\s+R\$\s*([\d.,]+)/i],
-          ['Lanterna led',       /Lanterna led\s+R\$\s*([\d.,]+)/i],
-          ['Lanterna auxiliar',  /Lanterna auxiliar\s+R\$\s*([\d.,]+)/i],
-          ['Retrovisor externo', /Retrovisor externo\s+R\$\s*([\d.,]+)/i],
-          ['Retrovisor Interno', /Retrovisor Interno\s+R\$\s*([\d.,]+)/i],
-          ['Teto Solar',         /Teto Solar\s+R\$\s*([\d.,]+)/i],
-          ['Máquina de Vidro',   /M[aá]quina de Vidro\s+R\$\s*([\d.,]+)/i],
-        ];
-        const itens = [];
-        for (const [nome, re] of pecas) {
-          const m = bloco.match(re);
-          if (m && m[1] && parseFloat(m[1].replace(',', '.')) > 0) {
-            itens.push(`${nome}: R$ ${m[1]}`);
-          }
+      // Busca no bloco específico; se não achar, busca no texto completo
+      const franqIdx = text.search(/FRANQUIAS DE SERVI/i);
+      const srcFranq = franqIdx >= 0 ? text.slice(franqIdx, franqIdx + 3000) : text;
+      const pecas = [
+        ['Parabrisa',                /Parabrisa\s+R\$\s*([\d.,]+)/i],
+        ['Vigia/Traseiro',           /Vigia\/Traseiro\s+R\$\s*([\d.,]+)/i],
+        ['Lateral',                  /Lateral\s+R\$\s*([\d.,]+)/i],
+        ['Farol Halógeno',           /Farol Hal[oó]geno\s+R\$\s*([\d.,]+)/i],
+        ['Farol xenon/led',          /Farol xenon\/led\s+R\$\s*([\d.,]+)/i],
+        ['Farol Inteligente',        /Farol Inteligente\s+R\$\s*([\d.,]+)/i],
+        ['Farol auxiliar',           /Farol auxiliar\s+R\$\s*([\d.,]+)/i],
+        ['Lanterna Halógena',        /Lanterna Hal[oó]gena\s+R\$\s*([\d.,]+)/i],
+        ['Lanterna led',             /Lanterna led\s+R\$\s*([\d.,]+)/i],
+        ['Lanterna auxiliar',        /Lanterna auxiliar\s+R\$\s*([\d.,]+)/i],
+        ['Retrovisor externo',       /Retrovisor externo\s+R\$\s*([\d.,]+)/i],
+        ['Retrovisor Interno',       /Retrovisor Interno\s+R\$\s*([\d.,]+)/i],
+        ['Teto Solar',               /Teto Solar\s+R\$\s*([\d.,]+)/i],
+        ['Máquina de Vidro',         /M[aá]quina de Vidro\s+R\$\s*([\d.,]+)/i],
+        ['Martelinho (teto)',         /Martelinho \(teto\)\s+R\$\s*([\d.,]+)/i],
+        ['Martelinho (demais peças)', /Martelinho \(demais pe[cç]as\)\s+R\$\s*([\d.,]+)/i],
+        ['Para-choque (troca)',       /Para-choque \(troca\)\s+R\$\s*([\d.,]+)/i],
+        ['Para-choque (reparo)',      /Para-choque \(reparo\)\s+R\$\s*([\d.,]+)/i],
+        ['Lataria e pintura',         /Lataria e pintura\s+R\$\s*([\d.,]+)/i],
+        ['Roda, Pneu e Suspensão',    /Roda,\s*Pneu e Suspens[aã]o\s+R\$\s*([\d.,]+)/i],
+      ];
+      const itens = [];
+      for (const [nome, re] of pecas) {
+        const m = srcFranq.match(re);
+        if (m && m[1] && parseFloat(m[1].replace(/\./g, '').replace(',', '.')) > 0) {
+          itens.push(`${nome}: R$ ${m[1]}`);
         }
-        if (itens.length) document.getElementById('franquias').value = itens.join(' | ');
       }
+      if (itens.length) document.getElementById('franquias').value = itens.join(' | ');
 
       // ── FRANQUIA PRINCIPAL ─────────────────────────────────────────
       const franqV = text.match(/Indenização Parcial do Veículo\s+R\$\s*([\d.,]+)/i);
       if (franqV) fill('franquiaValor', 'R$ ' + franqV[1]);
 
       // ── PAGAMENTO ─────────────────────────────────────────────────
-      const avM = text.match(/à vista\s+R\$\s*([\d.,]+)/i);
-      if (avM) { fill('premioTotal', 'R$ ' + avM[1]); fill('aVista', 'R$ ' + avM[1]); }
+      // Prêmio: valor antes de 'à vista' (ex: "R$ 3.902,88 à vista")
+      let avM = text.match(/R\$\s*([\d\.,]+)\s+à vista/i);
+      if (!avM) avM = text.match(/(\d[\d\.,]+)\s+à vista/i);
+      if (avM) {
+        const val = 'R$ ' + avM[1].replace(/\s/g, '');
+        fill('premioTotal', val);
+        fill('aVista', val);
+      }
 
       // Cartão: maior parcela Sem Juros até 12x
       const blCartao = text.match(/Cart[aã]o[\s\S]{0,2000}?(?=D[eé]bito|Ficha|Boleto|$)/i)?.[0] || '';
