@@ -1052,6 +1052,16 @@
         return { parcelas, valor };
       }
 
+      // Debug
+      const idxLocalRisco = text.indexOf('LOCAL DE RISCO');
+      const idxServicos = text.indexOf('SERVIÇOS');
+      const idxCEP = text.indexOf('CEP de pernoite');
+      console.log('=== DEBUG ===');
+      console.log('LOCAL DE RISCO pos:', idxLocalRisco, '| trecho:', text.substring(idxLocalRisco, idxLocalRisco+100));
+      console.log('SERVIÇOS pos:', idxServicos, '| trecho:', text.substring(idxServicos, idxServicos+200));
+      console.log('CEP pos:', idxCEP, '| trecho:', text.substring(idxCEP, idxCEP+50));
+      console.log('Prêmio trecho:', text.substring(text.indexOf('à vista')-30, text.indexOf('à vista')+10));
+
       // ── IDENTIFICAÇÃO ──────────────────────────────────────────────
       if (text.includes('Tokio Marine')) fill('seguradora', 'Tokio');
 
