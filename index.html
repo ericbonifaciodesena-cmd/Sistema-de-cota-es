@@ -1035,18 +1035,16 @@
         return m ? `${m[3]}-${m[2]}-${m[1]}` : '';
       }
 
-      // Maior parcela Sem Juros num bloco de texto, respeitando limite máximo de parcelas
+      // Maior parcela Sem Juros num bloco, usando matchAll (formato: "12 325,12 Sem Juros")
       function maiorSemJuros(bloco, max) {
         let maxN = 0, parcelas = '', valor = '';
         const padroes = [
-          /(\d+)\s+(?:R\$\s*)?([\d.,]+)\s+Sem Juros/gi,
-          /(\d+)\s*(?:x|Parcelas?)\s+Sem Juros\s+R\$\s*([\d.,]+)/gi,
-          /(\d+)\s*(?:x|Parcelas?)\s+R\$\s*([\d.,]+)\s+Sem Juros/gi,
+          /(\d+)\s+([\d\.,]+)\s+Sem Juros/gi,
+          /(\d+)\s*(?:x|Parcelas?)\s+(?:R\$\s*)?([\d\.,]+)\s+Sem Juros/gi,
+          /(\d+)\s*(?:x|Parcelas?)\s+Sem Juros\s+R\$\s*([\d\.,]+)/gi,
         ];
         for (const re of padroes) {
-          let m;
-          re.lastIndex = 0;
-          while ((m = re.exec(bloco)) !== null) {
+          for (const m of bloco.matchAll(re)) {
             const n = parseInt(m[1]);
             if (n > maxN && n <= max) { maxN = n; parcelas = m[1]; valor = m[2]; }
           }
@@ -1134,8 +1132,8 @@
       if (/Não e estou ciente/i.test(text)) fill('jovemCondutor', 'Não');
       else fill('jovemCondutor', 'Sim');
 
-      // CEP: após 'pernoite'
-      const cepM = text.match(/pernoite\s+([\d]{5}-[\d]{3})/i);
+      // CEP: entre 'pernoite' e 'Sim'
+      const cepM = text.match(/pernoite\s+(\d{5}-\d{3})\s+Sim/i);
       if (cepM) fill('cep', cepM[1]);
 
       // Uso
@@ -1206,9 +1204,8 @@
       if (cvCorpV) document.getElementById('valCartaVerdeCorp').value = 'US$ ' + cvCorpV;
 
       // ── COBERTURAS ADICIONAIS ──────────────────────────────────────
-      // Assistência 24h
-      const temAssist = text.includes('Assistência 24 horas') &&
-        !(/Assistência 24 horas.{0,50}Não contratada/i.test(text));
+      // Assistência 24h — âncora "Assistência 24 horas Completa"
+      const temAssist = /Assistência 24 horas Completa/i.test(text);
       check('chkAssistencia', temAssist);
       if (temAssist) {
         const kmM = text.match(/Km adicional de reboque\s+(\d+)\s*km/i);
@@ -1217,38 +1214,33 @@
         document.getElementById('lblAssistencia').value = `Assistência 24h — ${kmTotal}km`;
       }
 
-      // Vidros
-      const vidrosM = text.match(/Vidros\s+(Completo|Não possui)/i);
-      const temVidros = vidrosM && /completo/i.test(vidrosM[1]);
+      // Vidros — âncora "Vidros Completo"
+      const temVidros = /Vidros\s+Completo/i.test(text);
       check('chkVidros', temVidros);
 
       // Logomarca (vidros)
-      const logoM = text.match(/Logomarca \(vidros\)\s+(Possui|Não possui)/i);
-      const temLogo = logoM && /^Possui$/i.test(logoM[1]);
+      const temLogo = /Logomarca \(vidros\)\s+Possui/i.test(text);
       if (temVidros && temLogo) {
         check('chkLogomarca', true);
         document.getElementById('lblVidros').value = 'Vidros, faróis, lanternas e retrovisores com logomarca';
       }
 
-      // Martelinho e para-choque
-      const martelinhoM = text.match(/Martelinho e para-choque\s+(Possui|Não possui)/i);
-      check('chkParachoque', martelinhoM && /^Possui$/i.test(martelinhoM[1]));
-
-      // Lataria e pintura → Pequenos reparos
-      const latariaM = text.match(/Lataria e pintura\s+(Possui|Não possui)/i);
-      check('chkPequenosReparos', latariaM && /^Possui$/i.test(latariaM[1]));
-
-      // Roda, pneu e suspensão
-      const rodaM = text.match(/Roda, pneu e suspensão\s+(Possui|Não possui)/i);
-      check('chkRodas', rodaM && /^Possui$/i.test(rodaM[1]));
-
-      // Carro reserva
+      // Carro reserva — âncora "Carro reserva X diárias"
       const carroM = text.match(/Carro reserva\s+(\d+)\s+diárias/i);
       if (carroM) {
         check('chkCarroReserva', true);
         document.getElementById('carroReservaDias').value = carroM[1];
         document.getElementById('lblCarroReserva').value = `Carro reserva — ${carroM[1]} dias`;
       }
+
+      // Lataria e pintura Possui → Pequenos reparos
+      check('chkPequenosReparos', /Lataria e pintura\s+Possui/i.test(text));
+
+      // Martelinho e para-choque Possui → Troca para-choque
+      check('chkParachoque', /Martelinho e para-choque\s+Possui/i.test(text));
+
+      // Roda, pneu e suspensão Possui → Proteção rodas
+      check('chkRodas', /Roda,\s*pneu e suspensão\s+Possui/i.test(text));
 
       // ── FRANQUIAS DE SERVIÇOS ──────────────────────────────────────
       // Busca no bloco específico; se não achar, busca no texto completo
@@ -1286,31 +1278,33 @@
       if (itens.length) document.getElementById('franquias').value = itens.join(' | ');
 
       // ── FRANQUIA PRINCIPAL ─────────────────────────────────────────
-      const franqV = text.match(/Indenização Parcial do Veículo\s+R\$\s*([\d.,]+)/i);
+      const franqV = text.match(/Indenização Parcial do Ve[íi]culo\s+R\$\s*([\d.,]+)/i);
       if (franqV) fill('franquiaValor', 'R$ ' + franqV[1]);
 
       // ── PAGAMENTO ─────────────────────────────────────────────────
-      // Prêmio: valor antes de 'à vista' (ex: "R$ 3.902,88 à vista")
-      let avM = text.match(/R\$\s*([\d\.,]+)\s+à vista/i);
-      if (!avM) avM = text.match(/(\d[\d\.,]+)\s+à vista/i);
+      // Prêmio: valor ANTES de 'à vista'; suporta espaço interno "R$3.902 ,88 à vista"
+      const avM = text.match(/R\$\s*(\d[\d\.\s]*,\d{2})\s*à vista/i);
       if (avM) {
         const val = 'R$ ' + avM[1].replace(/\s/g, '');
         fill('premioTotal', val);
         fill('aVista', val);
       }
 
-      // Cartão: maior parcela Sem Juros até 12x
-      const blCartao = text.match(/Cart[aã]o[\s\S]{0,2000}?(?=D[eé]bito|Ficha|Boleto|$)/i)?.[0] || '';
+      // Blocos por âncora de título de tabela (ex: "Cartão Parcela", "Débito/Pix Aut. Parcela", "Ficha Parcela")
+      const iCartao = text.search(/Cart[aã]o\s+Parcela/i);
+      const iDebito = text.search(/D[eé]bito[^\n]{0,30}Parcela/i);
+      const iFicha  = text.search(/Ficha\s+Parcela/i);
+
+      const blCartao = iCartao >= 0 ? text.slice(iCartao, iDebito > iCartao ? iDebito : iCartao + 2000) : '';
+      const blDebito = iDebito >= 0 ? text.slice(iDebito, iFicha  > iDebito ? iFicha  : iDebito + 1000) : '';
+      const blBoleto = iFicha  >= 0 ? text.slice(iFicha,  iFicha  + 1000) : '';
+
       const cartao = maiorSemJuros(blCartao, 12);
       if (cartao.parcelas) { fill('cartaoParcelas', cartao.parcelas); fill('cartaoValor', cartao.valor); }
 
-      // Débito/Pix: maior parcela Sem Juros até 5x
-      const blDebito = text.match(/D[eé]bito[\s\S]{0,1000}?(?=Ficha|Boleto|$)/i)?.[0] || '';
       const debito = maiorSemJuros(blDebito, 5);
       if (debito.parcelas) { fill('debitoParcelas', debito.parcelas); fill('debitoValor', debito.valor); }
 
-      // Ficha/Boleto: maior parcela Sem Juros até 5x
-      const blBoleto = text.match(/(?:Ficha|Boleto)[\s\S]{0,1000}/i)?.[0] || '';
       const boleto = maiorSemJuros(blBoleto, 5);
       if (boleto.parcelas) { fill('boletoParcelas', boleto.parcelas); fill('boletoValor', boleto.valor); }
 
