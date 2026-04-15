@@ -1028,7 +1028,7 @@
       }
 
       // ── IDENTIFICAÇÃO ──────────────────────────────────────────────
-      if (text.includes('Tokio Marine')) fill('seguradora', 'Tokio Marine');
+      if (text.includes('Tokio Marine')) fill('seguradora', 'Tokio');
 
       fill('numeroCotacao', rx(/Nº Cotação[:\s]+(\d+)/));
       fill('validadeCotacao', toISO(rx(/Validade cotação[:\s]+([\d/]+)/)));
@@ -1050,43 +1050,30 @@
         if (nomeM) fill('nome', nomeM[1].trim());
       }
 
-      // Estado civil: após 'principal condutor' ou após o CPF (formato "Casado(a)")
-      const ecPat = /(Solteiro\(a\)|Casado\(a\)|Divorciado\(a\)|Viúvo\(a\)|Solteiro|Solteira|Casado|Casada|Divorciado|Divorciada|Viúvo|Viúva)/i;
-      const ecM1 = text.match(new RegExp('principal condutor\\s+' + ecPat.source, 'i'));
-      let ecVal = ecM1 ? ecM1[1] : '';
-      if (!ecVal && cpfVal) {
-        const afterCpf = text.slice(text.indexOf(cpfVal) + cpfVal.length);
-        const ecM2 = afterCpf.match(ecPat);
-        if (ecM2) ecVal = ecM2[1];
-      }
-      if (ecVal) fill('estadoCivil', ecVal);
+      // Estado civil: captura Solteiro/Casado/Divorciado/Viúvo/Separado no texto corrido
+      const ecM = text.match(/\b(Solteiro|Casado|Divorciado|Viúvo|Separado)(a)?\b/i);
+      if (ecM) fill('estadoCivil', ecM[1] + (ecM[2] || ''));
 
-      // Jovem condutor: 'Não e estou ciente' → Não
-      if (/Não e estou ciente/i.test(text)) {
-        fill('jovemCondutor', 'Não');
-      } else if (/Deseja contratar cobertura/i.test(text)) {
-        fill('jovemCondutor', 'Sim');
+      // Jovem condutor: captura Sim ou 'Não e estou' após 'Deseja contratar'
+      const jovM = text.match(/Deseja contratar[\s\S]{0,200}?(Sim|Não e estou)/i);
+      if (jovM) fill('jovemCondutor', /^Não/i.test(jovM[1]) ? 'Não' : 'Sim');
+
+      // CEP: após 'pernoite' com possível dígito solto antes
+      const cepM = text.match(/pernoite\s+\d?\s*(\d{5}-\d{3}|\d{8})/i);
+      if (cepM) {
+        let cep = cepM[1].replace(/\D/g, '');
+        fill('cep', cep.length === 8 ? cep.slice(0,5) + '-' + cep.slice(5) : cepM[1]);
       }
 
-      // CEP: \d{5}-\d{3} após 'pernoite'
-      const cepM = text.match(/pernoite\s+(\d{5}-\d{3})/i);
-      if (cepM) fill('cep', cepM[1]);
-
-      // Uso: 'Tipo de utilização' ou 'Particular' no texto
-      const usoM = text.match(/(?:Tipo de utilização|utilização)[:\s]+(\S+)/i)
-                || text.match(/Particular\s*[-–]\s*(\S+)/i);
-      if (usoM && /articular/i.test(usoM[0])) fill('uso', 'Particular');
+      // Uso: valor entre 'Tipo de utilização' e 'Dispositivo'
+      const usoM = text.match(/Tipo de utiliza(?:ç|c)ão\s+([\w\s\-/]+?)(?:\s+Dispositivo)/i);
+      if (usoM) fill('uso', usoM[1].trim());
       else if (/\bParticular\b/i.test(text)) fill('uso', 'Particular');
 
       // ── VEÍCULO ────────────────────────────────────────────────────
-      // Modelo: entre 'Fabricante' e 'Combustível/Flex/Gasolina', com fallback para montadora conhecida
-      const modeloM1 = text.match(/Fabricante\s+([\s\S]+?)\s+(?:Combustível|Flex|Gasolina|Álcool|Elétrico)/i);
-      let modeloVal = modeloM1 ? modeloM1[1].trim().replace(/\s+/g, ' ') : '';
-      if (!modeloVal) {
-        const modeloM2 = text.match(/\b(HYUNDAI|TOYOTA|VOLKSWAGEN|FIAT|CHEVROLET|HONDA|NISSAN|FORD|RENAULT|MITSUBISHI|JEEP|BMW|MERCEDES|AUDI|KIA)\s+([A-Z0-9][A-Z0-9\s]{2,40?})(?=\s+(?:Combustível|Flex|Gasolina|Álcool|\d{4}))/i);
-        if (modeloM2) modeloVal = (modeloM2[1] + ' ' + modeloM2[2]).trim().replace(/\s+/g, ' ');
-      }
-      if (modeloVal) fill('modelo', modeloVal);
+      // Modelo: após 'Fabricante Veículo' até 'Combust'
+      const modeloM = text.match(/Fabricante\s+Ve[íi]culo\s+([\w\s\d.]+?)(?:\s+Combust)/i);
+      if (modeloM) fill('modelo', modeloM[1].trim().replace(/\s+/g, ' '));
 
       // Placa: padrão clássico AAA-0000 ou mercosul AAA0A00
       const placaM = text.match(/\b([A-Z]{3}[-]?\d[A-Z0-9]\d{2})\b/);
