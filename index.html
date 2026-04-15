@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sena Seguros — Cotação</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -925,6 +926,8 @@
   </div>
   </div><!-- /formScreen -->
 
+  <img id="logoImg" src="logo.png" style="display:none" crossorigin="anonymous">
+
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -1191,6 +1194,281 @@
       document.getElementById('uploadStatus').style.display = 'none';
     }
 
+    // ── Geração do PDF ────────────────────────────────────────────
+    function generatePDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+      const pageW = 210, pageH = 297, margin = 15, contentW = 180;
+      const blue = [26, 58, 92];
+      const lightGray = [245, 247, 250];
+      const labelGray = [120, 120, 120];
+      const textDark = [30, 30, 30];
+      let y = margin;
+
+      const g = id => (document.getElementById(id)?.value || '').trim();
+      const chk = id => !!document.getElementById(id)?.checked;
+
+      function drawFooter() {
+        const fy = pageH - 12;
+        doc.setFillColor(...blue);
+        doc.rect(0, fy - 2, pageW, 14, 'F');
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(255, 255, 255);
+        doc.text('SENA SEGUROS  |  (48) 3272-0526  |  senaseguros@senaseguros.com.br',
+          pageW / 2, fy + 5, { align: 'center' });
+      }
+
+      function checkBreak(h) {
+        if (y + h > pageH - 18) {
+          drawFooter();
+          doc.addPage();
+          y = margin;
+        }
+      }
+
+      function drawSection(title) {
+        checkBreak(12);
+        doc.setFillColor(...blue);
+        doc.rect(margin, y, contentW, 8, 'F');
+        doc.setFillColor(100, 160, 220);
+        doc.rect(margin, y, 3, 8, 'F');
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(255, 255, 255);
+        doc.text(title.toUpperCase(), margin + 6, y + 5.5);
+        y += 11;
+      }
+
+      function drawField(x, fy, label, value) {
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...labelGray);
+        doc.text(label, x, fy);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...textDark);
+        doc.text(value || '—', x, fy + 5);
+      }
+
+      function drawRow(fields) {
+        checkBreak(12);
+        const w = contentW / fields.length;
+        fields.forEach((f, i) => drawField(margin + i * w, y, f.label, f.value));
+        y += 12;
+      }
+
+      // ── CABEÇALHO ──────────────────────────────────────────────────
+      doc.setFillColor(...lightGray);
+      doc.rect(0, 0, pageW, 38, 'F');
+
+      // Logo
+      const logoEl = document.getElementById('logoImg');
+      try {
+        if (logoEl && logoEl.complete && logoEl.naturalWidth > 0) {
+          doc.addImage(logoEl, 'PNG', margin, y, 35, 14);
+        } else { throw new Error('no logo'); }
+      } catch (_) {
+        doc.setTextColor(...blue);
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text('SENA', margin, y + 9);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text('SEGUROS', margin, y + 14);
+        doc.setDrawColor(...blue);
+        doc.setLineWidth(0.5);
+        doc.line(margin, y + 16, margin + 28, y + 16);
+      }
+
+      // Info direita
+      const hoje = new Date().toLocaleDateString('pt-BR');
+      const infoX = pageW - margin - 55;
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...labelGray);
+      doc.text('Data:', infoX, y + 4);
+      doc.text('Nº Cotação:', infoX, y + 9);
+      doc.text('Validade:', infoX, y + 14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...textDark);
+      doc.text(hoje, infoX + 22, y + 4);
+      doc.text(g('numeroCotacao') || '—', infoX + 22, y + 9);
+      const validade = g('validadeCotacao')
+        ? new Date(g('validadeCotacao') + 'T12:00:00').toLocaleDateString('pt-BR')
+        : '—';
+      doc.text(validade, infoX + 22, y + 14);
+
+      // Título
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...blue);
+      doc.text('COTAÇÃO DE SEGURO AUTO', pageW / 2, y + 24, { align: 'center' });
+
+      y = 43;
+
+      // ── SEGURADORA ──────────────────────────────────────────────────
+      drawSection('Seguradora');
+      checkBreak(10);
+      drawField(margin, y, 'Seguradora', g('seguradora'));
+      y += 12;
+
+      // ── DADOS DO SEGURADO ───────────────────────────────────────────
+      drawSection('Dados do Segurado');
+      drawRow([
+        { label: 'Nome', value: g('nome') },
+        { label: 'CPF', value: g('cpf') },
+        { label: 'Data de Nasc.', value: g('dataNasc') },
+        { label: 'Estado Civil', value: g('estadoCivil') }
+      ]);
+
+      // ── CONDUTOR PRINCIPAL ──────────────────────────────────────────
+      drawSection('Condutor Principal');
+      drawRow([
+        { label: 'CEP de Pernoite', value: g('cep') },
+        { label: 'Jovem Condutor', value: g('jovemCondutor') },
+        { label: 'Uso do Veículo', value: g('uso') }
+      ]);
+
+      // ── VEÍCULO ─────────────────────────────────────────────────────
+      drawSection('Dados do Veículo');
+      drawRow([
+        { label: 'Modelo', value: g('modelo') },
+        { label: 'Ano', value: g('ano') },
+        { label: 'Placa', value: g('placa') }
+      ]);
+
+      // ── VIGÊNCIA ────────────────────────────────────────────────────
+      drawSection('Vigência');
+      drawRow([
+        { label: 'Início', value: g('vigenciaInicio') },
+        { label: 'Término', value: g('vigenciaTermino') }
+      ]);
+
+      // ── COBERTURAS ESSENCIAIS ───────────────────────────────────────
+      const essenciais = [
+        { chk: 'chkColisao',      lbl: 'lblColisao',      val: 'valColisao' },
+        { chk: 'chkDanosMat',     lbl: 'lblDanosMat',     val: 'valDanosMat' },
+        { chk: 'chkDanosCorp',    lbl: 'lblDanosCorp',    val: 'valDanosCorp' },
+        { chk: 'chkDanosMorais',  lbl: 'lblDanosMorais',  val: 'valDanosMorais' },
+        { chk: 'chkApp',          lbl: 'lblApp',          val: 'valApp' },
+        { chk: 'chkCartaVerdeMat',lbl: 'lblCartaVerdeMat',val: 'valCartaVerdeMat' },
+        { chk: 'chkCartaVerdeCorp',lbl:'lblCartaVerdeCorp',val:'valCartaVerdeCorp' }
+      ].filter(c => chk(c.chk));
+
+      if (essenciais.length) {
+        drawSection('Coberturas Essenciais');
+        essenciais.forEach(c => {
+          checkBreak(7);
+          const lbl = g(c.lbl);
+          const val = g(c.val);
+          doc.setFontSize(8.5);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(...blue);
+          doc.text('\u2022', margin + 2, y + 4.5);
+          doc.setTextColor(...textDark);
+          doc.text(lbl, margin + 6, y + 4.5);
+          if (val) {
+            doc.setFont('helvetica', 'bold');
+            doc.text(val, pageW - margin, y + 4.5, { align: 'right' });
+          }
+          y += 7;
+        });
+        y += 3;
+      }
+
+      // ── COBERTURAS ADICIONAIS ───────────────────────────────────────
+      const adicionais = [
+        { chk: 'chkAssistencia',    lbl: 'lblAssistencia' },
+        { chk: 'chkVidros',         lbl: 'lblVidros' },
+        { chk: 'chkCarroReserva',   lbl: 'lblCarroReserva' },
+        { chk: 'chkPequenosReparos',lbl: 'lblPequenosReparos' },
+        { chk: 'chkParachoque',     lbl: 'lblParachoque' },
+        { chk: 'chkRodas',          lbl: 'lblRodas' }
+      ].filter(c => chk(c.chk));
+
+      if (adicionais.length) {
+        drawSection('Coberturas Adicionais');
+        adicionais.forEach(c => {
+          checkBreak(7);
+          doc.setFontSize(8.5);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(...blue);
+          doc.text('\u2022', margin + 2, y + 4.5);
+          doc.setTextColor(...textDark);
+          doc.text(g(c.lbl), margin + 6, y + 4.5);
+          y += 7;
+        });
+        y += 3;
+      }
+
+      // ── FRANQUIAS ADICIONAIS ────────────────────────────────────────
+      const franqTxt = g('franquias');
+      if (franqTxt) {
+        drawSection('Franquias Adicionais');
+        franqTxt.split(' | ').forEach(item => {
+          const part = item.trim();
+          if (!part) return;
+          checkBreak(7);
+          doc.setFontSize(8.5);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(...blue);
+          doc.text('\u2022', margin + 2, y + 4.5);
+          doc.setTextColor(...textDark);
+          doc.text(part, margin + 6, y + 4.5);
+          y += 7;
+        });
+        y += 3;
+      }
+
+      // ── VALORES DA PROPOSTA ─────────────────────────────────────────
+      checkBreak(40);
+      drawSection('Valores da Proposta');
+      drawRow([
+        { label: 'Prêmio Total', value: g('premioTotal') },
+        { label: 'Franquia', value: g('franquiaValor') },
+        { label: 'À Vista', value: g('aVista') }
+      ]);
+      const cp = g('cartaoParcelas'), cv = g('cartaoValor');
+      const dp = g('debitoParcelas'), dv = g('debitoValor');
+      const bp = g('boletoParcelas'), bv = g('boletoValor');
+      drawRow([
+        { label: 'Cartão de Crédito', value: cp && cv ? `${cp}x de ${cv}` : cv || '—' },
+        { label: 'Débito',            value: dp && dv ? `${dp}x de ${dv}` : dv || '—' },
+        { label: 'Boleto/Ficha',      value: bp && bv ? `${bp}x de ${bv}` : bv || '—' }
+      ]);
+      y += 3;
+
+      // ── DIFERENCIAIS ────────────────────────────────────────────────
+      checkBreak(40);
+      drawSection('Diferenciais Sena Seguros');
+      [
+        'A única da região com assistência 24H humana',
+        'Agilidade nos processos de sinistro',
+        'Atendimento personalizado e especializado',
+        'Parceria com as melhores seguradoras do Brasil'
+      ].forEach(d => {
+        checkBreak(7);
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...blue);
+        doc.text('\u2713', margin + 2, y + 4.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...textDark);
+        doc.text(d, margin + 8, y + 4.5);
+        y += 7;
+      });
+
+      // Rodapé da última página
+      drawFooter();
+
+      // Salva o arquivo
+      const primeiroNome = g('nome').split(' ')[0] || 'Sena';
+      const numCot = g('numeroCotacao') || 'xxx';
+      doc.save(`Cotacao_${primeiroNome}_${numCot}.pdf`);
+    }
+
     // ── Eventos de upload ─────────────────────────────────────────
     document.getElementById('fileInput').addEventListener('change', e => {
       if (e.target.files[0]) processPDF(e.target.files[0]);
@@ -1203,6 +1481,11 @@
       e.preventDefault();
       dropZone.classList.remove('drag-over');
       if (e.dataTransfer.files[0]) processPDF(e.dataTransfer.files[0]);
+    });
+
+    document.getElementById('cotacaoForm').addEventListener('submit', e => {
+      e.preventDefault();
+      generatePDF();
     });
   </script>
 
