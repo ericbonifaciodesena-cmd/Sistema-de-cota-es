@@ -1143,10 +1143,14 @@
       if (/Não e estou ciente/i.test(text)) fill('jovemCondutor', 'Não');
       else fill('jovemCondutor', 'Sim');
 
-      // CEP: busca em 'LOCAL DE RISCO', fallback em 'CEP de pernoite'
-      const cepM = text.match(/LOCAL DE RISCO\s+CEP de pernoite\s+(\d{5}-\d{3})/i)
-                || text.match(/CEP de pernoite\s+(\d{5}-\d{3})/i);
-      if (cepM) fill('cep', cepM[1]);
+      // CEP: padrão real "Não Não {CEP} Sim"; fallback = último CEP no texto
+      const cepM = text.match(/Não\s+Não\s+(\d{5}-\d{3})\s+Sim/i);
+      if (cepM) {
+        fill('cep', cepM[1]);
+      } else {
+        const todosCep = [...text.matchAll(/\b(\d{5}-\d{3})\b/g)];
+        if (todosCep.length) fill('cep', todosCep[todosCep.length - 1][1]);
+      }
 
       // Uso
       if (/\bParticular\b/i.test(text)) fill('uso', 'Particular');
@@ -1216,47 +1220,50 @@
       if (cvCorpV) document.getElementById('valCartaVerdeCorp').value = 'US$ ' + cvCorpV;
 
       // ── COBERTURAS ADICIONAIS ──────────────────────────────────────
-      // Busca dentro da seção SERVIÇOS para evitar falsos positivos
-      const svcIdx = text.search(/SERVI[CÇ]OS/i);
-      const srcSvc = svcIdx >= 0 ? text.slice(svcIdx, svcIdx + 2000) : text;
+      // O pdf.js não extrai os títulos de seção com ícone; busca diretamente no texto completo
 
-      // Assistência 24h — âncora "Assistência 24 horas Completa"
-      const temAssist = /Assistência 24 horas Completa/i.test(srcSvc);
+      // Assistência 24h
+      const temAssist = /Assistência 24 horas Completa/i.test(text);
       check('chkAssistencia', temAssist);
       if (temAssist) {
-        const kmM = srcSvc.match(/Km adicional de reboque\s+(\d+)\s*km/i);
+        const kmM = text.match(/Km adicional de reboque\s+(\d+)\s*km/i);
         const kmTotal = 200 + (kmM ? parseInt(kmM[1]) : 0);
         document.getElementById('assistenciaKm').value = kmTotal;
         document.getElementById('lblAssistencia').value = `Assistência 24h — ${kmTotal}km`;
       }
 
-      // Vidros — âncora "Vidros Completo"
-      const temVidros = /Vidros\s+Completo/i.test(srcSvc);
+      // Vidros: "Vidros Completo" ou "Vidros Não possui"
+      const vidrosM = text.match(/Vidros\s+(Completo|Não possui)/i);
+      const temVidros = !!(vidrosM && !/não possui/i.test(vidrosM[1]));
       check('chkVidros', temVidros);
 
-      // Logomarca (vidros)
-      const temLogo = /Logomarca \(vidros\)\s+Possui/i.test(srcSvc);
+      // Logomarca (vidros): "Logomarca (vidros) Possui" ou "Não possui"
+      const logoM = text.match(/Logomarca \(vidros\)\s+(Possui|Não possui)/i);
+      const temLogo = !!(logoM && !/não possui/i.test(logoM[1]));
       if (temVidros && temLogo) {
         check('chkLogomarca', true);
         document.getElementById('lblVidros').value = 'Vidros, faróis, lanternas e retrovisores com logomarca';
       }
 
-      // Carro reserva — âncora "Carro reserva X diárias"
-      const carroM = srcSvc.match(/Carro reserva\s+(\d+)\s+diárias/i);
+      // Carro reserva: "Carro reserva X diárias"
+      const carroM = text.match(/Carro reserva\s+(\d+)\s+diárias/i);
       if (carroM) {
         check('chkCarroReserva', true);
         document.getElementById('carroReservaDias').value = carroM[1];
         document.getElementById('lblCarroReserva').value = `Carro reserva — ${carroM[1]} dias`;
       }
 
-      // Lataria e pintura Possui → Pequenos reparos
-      check('chkPequenosReparos', /Lataria e pintura\s+Possui/i.test(srcSvc));
+      // Lataria e pintura → Pequenos reparos
+      const latariaM = text.match(/Lataria e pintura\s+(Possui|Não possui)/i);
+      check('chkPequenosReparos', !!(latariaM && !/não possui/i.test(latariaM[1])));
 
-      // Martelinho e para-choque Possui → Troca para-choque
-      check('chkParachoque', /Martelinho e para-choque\s+Possui/i.test(srcSvc));
+      // Martelinho e para-choque → Troca para-choque
+      const martelinhoM = text.match(/Martelinho e para-choque\s+(Possui|Não possui)/i);
+      check('chkParachoque', !!(martelinhoM && !/não possui/i.test(martelinhoM[1])));
 
-      // Roda, pneu e suspensão Possui → Proteção rodas
-      check('chkRodas', /Roda,\s*pneu e suspensão\s+Possui/i.test(srcSvc));
+      // Roda, pneu e suspensão → Proteção rodas
+      const rodaM = text.match(/Roda,\s*pneu e suspensão\s+(Possui|Não possui)/i);
+      check('chkRodas', !!(rodaM && !/não possui/i.test(rodaM[1])));
 
       // ── FRANQUIAS DE SERVIÇOS ──────────────────────────────────────
       // Busca no bloco específico; se não achar, busca no texto completo
@@ -1294,38 +1301,41 @@
       if (itens.length) document.getElementById('franquias').value = itens.join(' | ');
 
       // ── FRANQUIA PRINCIPAL ─────────────────────────────────────────
-      const franqV = text.match(/Indenização Parcial do Ve[íi]culo\s+R\$\s*([\d.,]+)/i);
+      // Padrão real: "25% da Básica | R$ 2.174,00"
+      const franqV = text.match(/25%\s+da\s+B[aá]sica\s*\|\s*R\$\s*([\d\.,]+)/i)
+                  || text.match(/Indenização Parcial do Ve[íi]culo\s+R\$\s*([\d.,]+)/i);
       if (franqV) fill('franquiaValor', 'R$ ' + franqV[1]);
 
       // ── PAGAMENTO ─────────────────────────────────────────────────
-      // Prêmio: valor ANTES de 'à vista'; suporta espaço interno "R$3.902 ,88 à vista"
-      const avM = text.match(/R\$\s*(\d[\d\.\s]*,\d{2})\s*à vista/i);
+      // Prêmio: suporta espaços extras "R$   7.278 ,40 à vista"
+      const avM = text.match(/R\$\s*([\d\s\.]+,\d{2})\s*à vista/i);
       if (avM) {
         const val = 'R$ ' + avM[1].replace(/\s/g, '');
         fill('premioTotal', val);
         fill('aVista', val);
       }
 
-      // Blocos por âncora de título de tabela (ex: "Cartão Parcela", "Débito/Pix Aut. Parcela", "Ficha Parcela")
-      const iCartao = text.search(/Cart[aã]o\s+Parcela/i);
-      const iDebito = text.search(/D[eé]bito[^\n]{0,30}Parcela/i);
-      const iFicha  = text.search(/Ficha\s+Parcela/i);
-
-      const blCartao = iCartao >= 0 ? text.slice(iCartao, iDebito > iCartao ? iDebito : iCartao + 2000) : '';
-      const blDebito = iDebito >= 0 ? text.slice(iDebito, iFicha  > iDebito ? iFicha  : iDebito + 1000) : '';
-      const blBoleto = iFicha  >= 0 ? text.slice(iFicha,  iFicha  + 1000) : '';
-
-      const cartao = maiorSemJuros(blCartao, 12);
-      const debito = maiorSemJuros(blDebito, 5);
-      const boleto = maiorSemJuros(blBoleto, 5);
-
-      // Valor por parcela = premioTotal / nParcelas (calculado, não extraído)
+      // Prêmio numérico para calcular parcelas
       const premioNum = avM ? parseFloat(avM[1].replace(/\s/g, '').replace(/\./g, '').replace(',', '.')) : 0;
       const valParc = n => (premioNum > 0 && n > 0) ? (premioNum / n).toFixed(2).replace('.', ',') : '';
 
-      if (cartao.parcelas) { fill('cartaoParcelas', cartao.parcelas); fill('cartaoValor', valParc(cartao.parcelas)); }
-      if (debito.parcelas)  { fill('debitoParcelas', debito.parcelas);  fill('debitoValor',  valParc(debito.parcelas)); }
-      if (boleto.parcelas)  { fill('boletoParcelas', boleto.parcelas);  fill('boletoValor',  valParc(boleto.parcelas)); }
+      // Cartão: extração direta "12 x sem juros R$ 606,41 no Cartão de Crédito"
+      const cartaoM = text.match(/(\d+)\s+x\s+sem\s+juros\s+R\$\s*([\d\.,]+)\s+no\s+Cart[aã]o/i);
+      if (cartaoM) {
+        fill('cartaoParcelas', cartaoM[1]);
+        fill('cartaoValor', cartaoM[2]);
+      } else if (premioNum > 0) {
+        fill('cartaoParcelas', '12');
+        fill('cartaoValor', valParc(12));
+      }
+
+      // Débito e boleto: padrão Tokio = 5x sem juros (calculado)
+      if (premioNum > 0) {
+        fill('debitoParcelas', '5');
+        fill('debitoValor', valParc(5));
+        fill('boletoParcelas', '5');
+        fill('boletoValor', valParc(5));
+      }
 
       // ── Exibe formulário preenchido ────────────────────────────────
       toggleScreen('form');
