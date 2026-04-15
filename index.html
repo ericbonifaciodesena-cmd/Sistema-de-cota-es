@@ -1050,30 +1050,26 @@
         if (nomeM) fill('nome', nomeM[1].trim());
       }
 
-      // Estado civil: captura Solteiro/Casado/Divorciado/Viúvo/Separado no texto corrido
-      const ecM = text.match(/\b(Solteiro|Casado|Divorciado|Viúvo|Separado)(a)?\b/i);
-      if (ecM) fill('estadoCivil', ecM[1] + (ecM[2] || ''));
+      // Estado civil: busca após o CPF para evitar falsos positivos
+      const ecM = (cpfVal ? text.slice(text.indexOf(cpfVal)) : text)
+        .match(/\b(Solteiro|Casada?|Divorciada?|Viúva?|Separada?)\b/i);
+      if (ecM) fill('estadoCivil', ecM[1]);
 
-      // Jovem condutor: captura Sim ou 'Não e estou' após 'Deseja contratar'
-      const jovM = text.match(/Deseja contratar[\s\S]{0,200}?(Sim|Não e estou)/i);
-      if (jovM) fill('jovemCondutor', /^Não/i.test(jovM[1]) ? 'Não' : 'Sim');
+      // Jovem condutor: busca direta de 'Não e estou ciente'
+      if (/Não e estou ciente/i.test(text)) fill('jovemCondutor', 'Não');
+      else fill('jovemCondutor', 'Sim');
 
-      // CEP: após 'pernoite' com possível dígito solto antes
-      const cepM = text.match(/pernoite\s+\d?\s*(\d{5}-\d{3}|\d{8})/i);
-      if (cepM) {
-        let cep = cepM[1].replace(/\D/g, '');
-        fill('cep', cep.length === 8 ? cep.slice(0,5) + '-' + cep.slice(5) : cepM[1]);
-      }
+      // CEP: busca padrão XXXXX-XXX diretamente na segunda metade do texto
+      const cepM = text.slice(Math.floor(text.length / 2)).match(/\b(\d{5}-\d{3})\b/);
+      if (cepM) fill('cep', cepM[1]);
 
-      // Uso: valor entre 'Tipo de utilização' e 'Dispositivo'
-      const usoM = text.match(/Tipo de utiliza(?:ç|c)ão\s+([\w\s\-/]+?)(?:\s+Dispositivo)/i);
-      if (usoM) fill('uso', usoM[1].trim());
-      else if (/\bParticular\b/i.test(text)) fill('uso', 'Particular');
+      // Uso: busca direta de 'Particular'
+      if (/\bParticular\b/i.test(text)) fill('uso', 'Particular');
 
       // ── VEÍCULO ────────────────────────────────────────────────────
-      // Modelo: após 'Fabricante Veículo' até 'Combust'
-      const modeloM = text.match(/Fabricante\s+Ve[íi]culo\s+([\w\s\d.]+?)(?:\s+Combust)/i);
-      if (modeloM) fill('modelo', modeloM[1].trim().replace(/\s+/g, ' '));
+      // Modelo: busca direta por montadora + modelo antes do combustível
+      const modeloM = text.match(/(HYUNDAI|TOYOTA|HONDA|VOLKSWAGEN|CHEVROLET|FIAT|FORD|NISSAN|RENAULT|JEEP|BMW|MERCEDES|MITSUBISHI|KIA|PEUGEOT|CITRO[EÊ]N)\s+([A-Z0-9][A-Z0-9\s.]+?)(?=\s+(?:Flex|Gasolina|Diesel|El[eé]trico|H[íi]brido))/i);
+      if (modeloM) fill('modelo', (modeloM[1] + ' ' + modeloM[2]).trim().replace(/\s+/g, ' '));
 
       // Placa: padrão clássico AAA-0000 ou mercosul AAA0A00
       const placaM = text.match(/\b([A-Z]{3}[-]?\d[A-Z0-9]\d{2})\b/);
