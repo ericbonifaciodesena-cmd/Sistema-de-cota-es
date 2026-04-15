@@ -1132,8 +1132,9 @@
       if (/Não e estou ciente/i.test(text)) fill('jovemCondutor', 'Não');
       else fill('jovemCondutor', 'Sim');
 
-      // CEP: entre 'pernoite' e 'Sim'
-      const cepM = text.match(/pernoite\s+(\d{5}-\d{3})\s+Sim/i);
+      // CEP: busca em 'LOCAL DE RISCO', fallback em 'CEP de pernoite'
+      const cepM = text.match(/LOCAL DE RISCO\s+CEP de pernoite\s+(\d{5}-\d{3})/i)
+                || text.match(/CEP de pernoite\s+(\d{5}-\d{3})/i);
       if (cepM) fill('cep', cepM[1]);
 
       // Uso
@@ -1204,29 +1205,33 @@
       if (cvCorpV) document.getElementById('valCartaVerdeCorp').value = 'US$ ' + cvCorpV;
 
       // ── COBERTURAS ADICIONAIS ──────────────────────────────────────
+      // Busca dentro da seção SERVIÇOS para evitar falsos positivos
+      const svcIdx = text.search(/SERVI[CÇ]OS/i);
+      const srcSvc = svcIdx >= 0 ? text.slice(svcIdx, svcIdx + 2000) : text;
+
       // Assistência 24h — âncora "Assistência 24 horas Completa"
-      const temAssist = /Assistência 24 horas Completa/i.test(text);
+      const temAssist = /Assistência 24 horas Completa/i.test(srcSvc);
       check('chkAssistencia', temAssist);
       if (temAssist) {
-        const kmM = text.match(/Km adicional de reboque\s+(\d+)\s*km/i);
+        const kmM = srcSvc.match(/Km adicional de reboque\s+(\d+)\s*km/i);
         const kmTotal = 200 + (kmM ? parseInt(kmM[1]) : 0);
         document.getElementById('assistenciaKm').value = kmTotal;
         document.getElementById('lblAssistencia').value = `Assistência 24h — ${kmTotal}km`;
       }
 
       // Vidros — âncora "Vidros Completo"
-      const temVidros = /Vidros\s+Completo/i.test(text);
+      const temVidros = /Vidros\s+Completo/i.test(srcSvc);
       check('chkVidros', temVidros);
 
       // Logomarca (vidros)
-      const temLogo = /Logomarca \(vidros\)\s+Possui/i.test(text);
+      const temLogo = /Logomarca \(vidros\)\s+Possui/i.test(srcSvc);
       if (temVidros && temLogo) {
         check('chkLogomarca', true);
         document.getElementById('lblVidros').value = 'Vidros, faróis, lanternas e retrovisores com logomarca';
       }
 
       // Carro reserva — âncora "Carro reserva X diárias"
-      const carroM = text.match(/Carro reserva\s+(\d+)\s+diárias/i);
+      const carroM = srcSvc.match(/Carro reserva\s+(\d+)\s+diárias/i);
       if (carroM) {
         check('chkCarroReserva', true);
         document.getElementById('carroReservaDias').value = carroM[1];
@@ -1234,13 +1239,13 @@
       }
 
       // Lataria e pintura Possui → Pequenos reparos
-      check('chkPequenosReparos', /Lataria e pintura\s+Possui/i.test(text));
+      check('chkPequenosReparos', /Lataria e pintura\s+Possui/i.test(srcSvc));
 
       // Martelinho e para-choque Possui → Troca para-choque
-      check('chkParachoque', /Martelinho e para-choque\s+Possui/i.test(text));
+      check('chkParachoque', /Martelinho e para-choque\s+Possui/i.test(srcSvc));
 
       // Roda, pneu e suspensão Possui → Proteção rodas
-      check('chkRodas', /Roda,\s*pneu e suspensão\s+Possui/i.test(text));
+      check('chkRodas', /Roda,\s*pneu e suspensão\s+Possui/i.test(srcSvc));
 
       // ── FRANQUIAS DE SERVIÇOS ──────────────────────────────────────
       // Busca no bloco específico; se não achar, busca no texto completo
@@ -1300,13 +1305,16 @@
       const blBoleto = iFicha  >= 0 ? text.slice(iFicha,  iFicha  + 1000) : '';
 
       const cartao = maiorSemJuros(blCartao, 12);
-      if (cartao.parcelas) { fill('cartaoParcelas', cartao.parcelas); fill('cartaoValor', cartao.valor); }
-
       const debito = maiorSemJuros(blDebito, 5);
-      if (debito.parcelas) { fill('debitoParcelas', debito.parcelas); fill('debitoValor', debito.valor); }
-
       const boleto = maiorSemJuros(blBoleto, 5);
-      if (boleto.parcelas) { fill('boletoParcelas', boleto.parcelas); fill('boletoValor', boleto.valor); }
+
+      // Valor por parcela = premioTotal / nParcelas (calculado, não extraído)
+      const premioNum = avM ? parseFloat(avM[1].replace(/\s/g, '').replace(/\./g, '').replace(',', '.')) : 0;
+      const valParc = n => (premioNum > 0 && n > 0) ? (premioNum / n).toFixed(2).replace('.', ',') : '';
+
+      if (cartao.parcelas) { fill('cartaoParcelas', cartao.parcelas); fill('cartaoValor', valParc(cartao.parcelas)); }
+      if (debito.parcelas)  { fill('debitoParcelas', debito.parcelas);  fill('debitoValor',  valParc(debito.parcelas)); }
+      if (boleto.parcelas)  { fill('boletoParcelas', boleto.parcelas);  fill('boletoValor',  valParc(boleto.parcelas)); }
 
       // ── Exibe formulário preenchido ────────────────────────────────
       toggleScreen('form');
