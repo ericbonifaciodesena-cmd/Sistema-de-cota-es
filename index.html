@@ -1381,24 +1381,30 @@
       }
 
       function drawFooter(i, totalPages) {
-        doc.setFillColor(12, 39, 60);
+        doc.setFillColor(55, 125, 246);
         doc.rect(0, 282, 210, 15, 'F');
         doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
         doc.text('SENA SEGUROS - Corretora de Seguros', 14, 288);
-        doc.setFont('helvetica', 'normal'); doc.setTextColor(150, 180, 210);
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(255, 255, 255);
         doc.text('Telefone: (48) 3272-0526  |  E-mail: senaseguros@senaseguros.com.br  |  www.senaseguros.com.br', 14, 293);
         doc.text(`${i} / ${totalPages}`, 196, 293, { align: 'right' });
       }
 
       function drawSection(title) {
         pb(12);
+        // Fundo escuro arredondado
         doc.setFillColor(12, 39, 60);
-        doc.rect(14, y, 182, 8, 'F');
+        doc.roundedRect(14, y, 182, 9, 1, 1, 'F');
+        // Barra azul lateral arredondada
         doc.setFillColor(55, 125, 246);
-        doc.rect(14, y, 4, 8, 'F');
-        doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
-        doc.text(title.toUpperCase(), 22, y + 5.5);
-        y += 13;
+        doc.roundedRect(14, y, 5, 9, 1, 1, 'F');
+        // Triângulo decorativo azul (efeito diagonal)
+        doc.setFillColor(55, 125, 246);
+        doc.triangle(19, y, 28, y, 19, y + 9, 'F');
+        // Texto branco
+        doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
+        doc.text(title.toUpperCase(), 24, y + 6.2);
+        y += 14;
       }
 
       function drawField(x, fy, w, label, value) {
@@ -1443,7 +1449,7 @@
           doc.setDrawColor(...colGray); doc.setLineWidth(0.3);
           doc.rect(margin, y, contentW, 7);
           doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colDark);
-          doc.text(g(c.lbl) || '—', margin + 3, y + 4.8);
+          doc.text((c.getLabel ? c.getLabel() : g(c.lbl)) || '—', margin + 3, y + 4.8);
           if (c.val) {
             const v = g(c.val);
             if (v) { doc.setFont('helvetica', 'bold'); doc.text(v, margin + contentW - 3, y + 4.8, { align: 'right' }); }
@@ -1546,7 +1552,14 @@
 
       // ── COBERTURAS ADICIONAIS ───────────────────────────────────────
       const cobAdc = [
-        { chk: 'chkAssistencia',    lbl: 'lblAssistencia',    val: null },
+        {
+          chk: 'chkAssistencia', lbl: 'lblAssistencia', val: null,
+          getLabel: () => {
+            const km  = g('assistenciaKm');
+            const base = g('lblAssistencia') || 'Assistência 24h';
+            return (km && !base.includes(km)) ? `${base} — ${km} km` : base;
+          }
+        },
         { chk: 'chkVidros',         lbl: 'lblVidros',         val: null },
         { chk: 'chkCarroReserva',   lbl: 'lblCarroReserva',   val: null },
         { chk: 'chkPequenosReparos',lbl: 'lblPequenosReparos',val: null },
