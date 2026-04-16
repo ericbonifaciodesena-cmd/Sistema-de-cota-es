@@ -1208,55 +1208,32 @@
       if (cvCorpV) document.getElementById('valCartaVerdeCorp').value = 'US$ ' + cvCorpV;
 
       // ── COBERTURAS ADICIONAIS ──────────────────────────────────────
-      // O pdf.js não extrai os títulos de seção com ícone; busca diretamente no texto completo
+      // Busca independente para cada serviço no texto completo
 
-      // Assistência 24h
-      const temAssist = /Assistência 24 horas Completa/i.test(text);
-      check('chkAssistencia', temAssist);
-      if (temAssist) {
+      const vidrosM     = text.match(/Vidros\s+Completo/i);
+      const logomarcaM  = text.match(/Logomarca \(vidros\)\s+Possui(?!\s+não)/i);
+      const martelinhoM = text.match(/Martelinho e para-choque\s+Possui(?!\s+não)/i);
+      const lalariaM    = text.match(/Lataria e pintura\s+Possui(?!\s+não)/i);
+      const rodaM       = text.match(/Roda, pneu e suspens[aã]o\s+Possui(?!\s+não)/i);
+      const carroM      = text.match(/Carro reserva\s+(\d+)\s+diárias/i);
+      const assistenciaM = text.match(/Assistência 24 horas\s+Completa/i);
+
+      if (vidrosM)     document.getElementById('chkVidros').checked = true;
+      if (logomarcaM)  document.getElementById('chkLogomarca').checked = true;
+      if (martelinhoM) document.getElementById('chkParachoque').checked = true;
+      if (lalariaM)    document.getElementById('chkPequenosReparos').checked = true;
+      if (rodaM)       document.getElementById('chkRodas').checked = true;
+      if (carroM) {
+        document.getElementById('chkCarroReserva').checked = true;
+        document.getElementById('carroReservaDias').value = carroM[1];
+        document.getElementById('lblCarroReserva').value = `Carro reserva — ${carroM[1]} dias`;
+      }
+      if (assistenciaM) {
+        document.getElementById('chkAssistencia').checked = true;
         const kmM = text.match(/Km adicional de reboque\s+(\d+)\s*km/i);
         const kmTotal = 200 + (kmM ? parseInt(kmM[1]) : 0);
         document.getElementById('assistenciaKm').value = kmTotal;
         document.getElementById('lblAssistencia').value = `Assistência 24h — ${kmTotal}km`;
-      }
-
-      // Debug serviços
-      const idxVidros = text.indexOf('Vidros');
-      console.log('Vidros pos:', idxVidros);
-      console.log('Trecho serviços:', text.substring(idxVidros, idxVidros + 400));
-
-      // Serviços: nomes e valores aparecem separados no texto extraído.
-      // Regex único captura os 6 valores em sequência após a lista de nomes.
-      const svcM = text.match(
-        /Vidros\s+Logomarca \(vidros\)\s+Martelinho e para-choque\s+Lataria e pintura\s+Roda, pneu e suspens[aã]o\s+Carro reserva\s+(Completo|Não possui)\s+(Possui|Não possui)\s+(Possui|Não possui)\s+(Possui|Não possui)\s+(Possui|Não possui)\s+(\d+)\s+diárias/i
-      );
-      if (svcM) {
-        const [, gVidros, gLogo, gMartelinho, gLataria, gRoda, gDiarias] = svcM;
-
-        // Vidros (grupo 1)
-        const temVidros = !/não possui/i.test(gVidros);
-        check('chkVidros', temVidros);
-
-        // Logomarca (grupo 2)
-        const temLogo = !/não possui/i.test(gLogo);
-        if (temVidros && temLogo) {
-          check('chkLogomarca', true);
-          document.getElementById('lblVidros').value = 'Vidros, faróis, lanternas e retrovisores com logomarca';
-        }
-
-        // Martelinho e para-choque (grupo 3) → Troca para-choque
-        check('chkParachoque', !/não possui/i.test(gMartelinho));
-
-        // Lataria e pintura (grupo 4) → Pequenos reparos
-        check('chkPequenosReparos', !/não possui/i.test(gLataria));
-
-        // Roda, pneu e suspensão (grupo 5) → Proteção rodas
-        check('chkRodas', !/não possui/i.test(gRoda));
-
-        // Carro reserva (grupo 6)
-        check('chkCarroReserva', true);
-        document.getElementById('carroReservaDias').value = gDiarias;
-        document.getElementById('lblCarroReserva').value = `Carro reserva — ${gDiarias} dias`;
       }
 
       // ── FRANQUIAS DE SERVIÇOS ──────────────────────────────────────
