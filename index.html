@@ -1409,19 +1409,19 @@
       }
 
       function drawFull(label, value) {
-        pb(12); drawField(margin, y, contentW, label, value); y += 11;
+        pb(10); drawField(margin, y, contentW, label, value); y += 10;
       }
 
       function drawTwo(l1, v1, l2, v2) {
-        pb(12);
+        pb(10);
         const w = (contentW - 2) / 2;
         drawField(margin, y, w, l1, v1);
         drawField(margin + w + 2, y, w, l2, v2);
-        y += 11;
+        y += 10;
       }
 
       function drawHalf(label, value) {
-        pb(12); drawField(margin, y, (contentW - 2) / 2, label, value); y += 11;
+        pb(10); drawField(margin, y, (contentW - 2) / 2, label, value); y += 10;
       }
 
       // helper: desenha tabela de coberturas
@@ -1487,9 +1487,8 @@
 
       // ── DADOS DO SEGURADO ───────────────────────────────────────────
       drawSection('DADOS DO SEGURADO');
-      drawFull('Nome Completo', g('nome'));
-      drawTwo('CPF', g('cpf'), 'Data de Nascimento', fmtDate(g('dataNasc')));
-      drawHalf('Estado Civil', g('estadoCivil'));
+      drawTwo('Nome', g('nome'), 'CPF', g('cpf'));
+      drawTwo('Data de Nascimento', fmtDate(g('dataNasc')), 'Estado Civil', g('estadoCivil'));
 
       // ── CONDUTOR PRINCIPAL ──────────────────────────────────────────
       drawSection('CONDUTOR PRINCIPAL');
@@ -1500,8 +1499,20 @@
 
       // ── DADOS DO VEÍCULO ────────────────────────────────────────────
       drawSection('DADOS DO VEÍCULO');
-      drawTwo('Modelo', g('modelo'), 'Ano', g('ano'));
-      drawHalf('Placa', g('placa'));
+      pb(7);
+      doc.setFontSize(8); doc.setTextColor(107, 114, 128); doc.setFont('helvetica', 'bold');
+      doc.text('Modelo:', 16, y);
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(26, 26, 46);
+      doc.text(g('modelo') || '—', 30, y);
+      doc.setFont('helvetica', 'bold'); doc.setTextColor(107, 114, 128);
+      doc.text('Placa:', 100, y);
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(26, 26, 46);
+      doc.text(g('placa') || '—', 112, y);
+      doc.setFont('helvetica', 'bold'); doc.setTextColor(107, 114, 128);
+      doc.text('Ano:', 145, y);
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(26, 26, 46);
+      doc.text(g('ano') || '—', 154, y);
+      y += 8;
 
       // ── VIGÊNCIA ────────────────────────────────────────────────────
       drawSection('VIGÊNCIA');
@@ -1550,22 +1561,24 @@
 
       // ── VALORES DA PROPOSTA ─────────────────────────────────────────
       drawSection('VALORES DA PROPOSTA');
-      pb(14);
-      const halfW = (contentW - 2) / 2;
-      doc.setDrawColor(...colGray); doc.setLineWidth(0.3);
-      doc.rect(margin, y, halfW, 13);
-      doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colLabelGray);
-      doc.text('PRÊMIO TOTAL', margin + 2, y + 3.5);
-      doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colBlue);
-      doc.text(g('premioTotal') || '—', margin + 2, y + 10.5);
-
-      doc.setDrawColor(...colGray);
-      doc.rect(margin + halfW + 2, y, halfW, 13);
-      doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colLabelGray);
-      doc.text('FRANQUIA', margin + halfW + 4, y + 3.5);
-      doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colDark);
-      doc.text(g('franquiaValor') || '—', margin + halfW + 4, y + 10.5);
-      y += 15;
+      pb(26);
+      // Fundo escuro para Prêmio Total
+      doc.setFillColor(12, 39, 60);
+      doc.roundedRect(14, y, 88, 22, 2, 2, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+      doc.text('PRÊMIO TOTAL', 18, y + 7);
+      doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+      doc.text(g('premioTotal') || 'R$ 0,00', 18, y + 16);
+      // Fundo escuro para Franquia
+      doc.setFillColor(12, 39, 60);
+      doc.roundedRect(106, y, 88, 22, 2, 2, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+      doc.text('FRANQUIA', 110, y + 7);
+      doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+      doc.text(g('franquiaValor') || 'R$ 0,00', 110, y + 16);
+      y += 28;
 
       pb(7);
       doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colBlue);
