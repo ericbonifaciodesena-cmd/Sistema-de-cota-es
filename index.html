@@ -1353,11 +1353,11 @@
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
       const pageW = 210, pageH = 297, margin = 15, contentW = 180;
-      const colBlue     = [26, 58, 92];
-      const colGray     = [200, 200, 200];
-      const colLightGray= [245, 247, 250];
-      const colLabelGray= [136, 136, 136];
-      const colDark     = [30, 30, 30];
+      const colBlue      = [26, 58, 92];
+      const colGray      = [200, 200, 200];
+      const colLightGray = [245, 247, 250];
+      const colLabelGray = [136, 136, 136];
+      const colDark      = [30, 30, 30];
       let y = margin;
 
       const g   = id => (document.getElementById(id)?.value || '').trim();
@@ -1365,10 +1365,7 @@
 
       function fmtDate(s) {
         if (!s) return '—';
-        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-          const [a, m, d] = s.split('-');
-          return `${d}/${m}/${a}`;
-        }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) { const [a,m,d] = s.split('-'); return `${d}/${m}/${a}`; }
         return s;
       }
 
@@ -1380,52 +1377,71 @@
         const fy = pageH - 22;
         doc.setDrawColor(...colGray); doc.setLineWidth(0.3);
         doc.line(margin, fy, margin + contentW, fy);
-        doc.setFontSize(7.5); doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...colBlue);
+        doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colBlue);
         doc.text('SENA SEGUROS - Corretora de Seguros', margin, fy + 5);
         doc.setFont('helvetica', 'normal'); doc.setTextColor(...colLabelGray);
         doc.text('Telefone: (48) 3272-0526  |  E-mail: senaseguros@senaseguros.com.br  |  Website: www.senaseguros.com.br', margin, fy + 10);
-        const hoje = new Date().toLocaleDateString('pt-BR');
-        doc.text(`Esta cotação foi gerada automaticamente em ${hoje}`, margin, fy + 15);
+        doc.text(`Esta cotação foi gerada automaticamente em ${new Date().toLocaleDateString('pt-BR')}`, margin, fy + 15);
       }
 
       function drawSection(title) {
-        pb(14); y += 4;
-        doc.setFillColor(...colBlue);
-        doc.rect(margin, y, 3, 7, 'F');
-        doc.setFontSize(9); doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...colBlue);
-        doc.text(title, margin + 6, y + 5.2);
-        y += 11;
+        pb(12); y += 2;
+        doc.setFillColor(...colBlue); doc.rect(margin, y, 3, 6, 'F');
+        doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colBlue);
+        doc.text(title, margin + 6, y + 4.5);
+        y += 9;
       }
 
       function drawField(x, fy, w, label, value) {
         doc.setDrawColor(...colGray); doc.setLineWidth(0.3);
-        doc.rect(x, fy, w, 12);
-        doc.setFontSize(7); doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...colLabelGray);
-        doc.text(label, x + 2, fy + 4);
-        doc.setFontSize(10); doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...colDark);
-        doc.text(value || '—', x + 2, fy + 9.5);
+        doc.rect(x, fy, w, 10);
+        doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colLabelGray);
+        doc.text(label, x + 2, fy + 3.5);
+        doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colDark);
+        doc.text(value || '—', x + 2, fy + 8.5);
       }
 
       function drawFull(label, value) {
-        pb(14); drawField(margin, y, contentW, label, value); y += 13;
+        pb(12); drawField(margin, y, contentW, label, value); y += 11;
       }
 
       function drawTwo(l1, v1, l2, v2) {
-        pb(14);
+        pb(12);
         const w = (contentW - 2) / 2;
-        drawField(margin,         y, w, l1, v1);
+        drawField(margin, y, w, l1, v1);
         drawField(margin + w + 2, y, w, l2, v2);
-        y += 13;
+        y += 11;
       }
 
       function drawHalf(label, value) {
-        pb(14);
-        drawField(margin, y, (contentW - 2) / 2, label, value);
-        y += 13;
+        pb(12); drawField(margin, y, (contentW - 2) / 2, label, value); y += 11;
+      }
+
+      // helper: desenha tabela de coberturas
+      function drawCobTable(lista) {
+        pb(10);
+        doc.setFillColor(...colLightGray);
+        doc.rect(margin, y, contentW, 7, 'F');
+        doc.setDrawColor(...colGray); doc.setLineWidth(0.3);
+        doc.rect(margin, y, contentW, 7);
+        doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colDark);
+        doc.text('Cobertura', margin + 3, y + 4.8);
+        doc.text('Valor / Importância Segurada', margin + contentW - 3, y + 4.8, { align: 'right' });
+        y += 7;
+        lista.forEach((c, i) => {
+          pb(7);
+          if (i % 2 === 0) { doc.setFillColor(250,250,250); doc.rect(margin, y, contentW, 7, 'F'); }
+          doc.setDrawColor(...colGray); doc.setLineWidth(0.3);
+          doc.rect(margin, y, contentW, 7);
+          doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colDark);
+          doc.text(g(c.lbl) || '—', margin + 3, y + 4.8);
+          if (c.val) {
+            const v = g(c.val);
+            if (v) { doc.setFont('helvetica', 'bold'); doc.text(v, margin + contentW - 3, y + 4.8, { align: 'right' }); }
+          }
+          y += 7;
+        });
+        y += 3;
       }
 
       // ── CABEÇALHO ──────────────────────────────────────────────────
@@ -1435,31 +1451,28 @@
           doc.addImage(logoEl, 'PNG', margin, y, 40, 16);
         } else throw new Error();
       } catch (_) {
-        doc.setFontSize(16); doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...colBlue);
+        doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colBlue);
         doc.text('sena', margin, y + 9);
-        const sw = doc.getTextWidth('sena');
         doc.setFont('helvetica', 'normal');
-        doc.text('seguros', margin + sw, y + 9);
+        doc.text('seguros', margin + doc.getTextWidth('sena'), y + 9);
         doc.setFontSize(7); doc.setTextColor(...colLabelGray);
         doc.text('Corretora de Seguros', margin, y + 14);
       }
 
-      const hoje = new Date().toLocaleDateString('pt-BR');
-      doc.setFontSize(8); doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...colLabelGray);
-      doc.text(`Data: ${hoje}`,    pageW - margin, y + 6,  { align: 'right' });
-      doc.text('Proposta: N/A',    pageW - margin, y + 11, { align: 'right' });
-      y += 22;
+      // Lado direito: Data, Nº Cotação, Validade
+      doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colLabelGray);
+      doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`,            pageW - margin, y + 5,  { align: 'right' });
+      doc.text(`Nº Cotação: ${g('numeroCotacao') || '—'}`,                  pageW - margin, y + 10, { align: 'right' });
+      doc.text(`Validade: ${fmtDate(g('validadeCotacao'))}`,                pageW - margin, y + 15, { align: 'right' });
+      y += 20;
 
       doc.setDrawColor(...colGray); doc.setLineWidth(0.5);
       doc.line(margin, y, margin + contentW, y);
-      y += 7;
+      y += 6;
 
-      doc.setFontSize(11); doc.setFont('helvetica', 'bold');
-      doc.setTextColor(180, 180, 180);
+      doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(180, 180, 180);
       doc.text('COTAÇÃO  DE  SEGURO  AUTO', pageW / 2, y, { align: 'center' });
-      y += 10;
+      y += 8;
 
       // ── SEGURADORA ──────────────────────────────────────────────────
       drawSection('SEGURADORA');
@@ -1487,7 +1500,7 @@
       drawSection('VIGÊNCIA');
       drawTwo('Início', fmtDate(g('vigenciaInicio')), 'Término', fmtDate(g('vigenciaTermino')));
 
-      // ── COBERTURAS CONTRATADAS ──────────────────────────────────────
+      // ── COBERTURAS ESSENCIAIS ───────────────────────────────────────
       const cobEss = [
         { chk: 'chkColisao',       lbl: 'lblColisao',       val: 'valColisao' },
         { chk: 'chkDanosMat',      lbl: 'lblDanosMat',      val: 'valDanosMat' },
@@ -1496,7 +1509,10 @@
         { chk: 'chkApp',           lbl: 'lblApp',           val: 'valApp' },
         { chk: 'chkCartaVerdeMat', lbl: 'lblCartaVerdeMat', val: 'valCartaVerdeMat' },
         { chk: 'chkCartaVerdeCorp',lbl: 'lblCartaVerdeCorp',val: 'valCartaVerdeCorp' },
-      ];
+      ].filter(c => chk(c.chk));
+      if (cobEss.length) { drawSection('COBERTURAS ESSENCIAIS'); drawCobTable(cobEss); }
+
+      // ── COBERTURAS ADICIONAIS ───────────────────────────────────────
       const cobAdc = [
         { chk: 'chkAssistencia',    lbl: 'lblAssistencia',    val: null },
         { chk: 'chkVidros',         lbl: 'lblVidros',         val: null },
@@ -1504,94 +1520,50 @@
         { chk: 'chkPequenosReparos',lbl: 'lblPequenosReparos',val: null },
         { chk: 'chkParachoque',     lbl: 'lblParachoque',     val: null },
         { chk: 'chkRodas',          lbl: 'lblRodas',          val: null },
-      ];
-      const contratadas = [
-        ...cobEss.filter(c => chk(c.chk)),
-        ...cobAdc.filter(c => chk(c.chk)),
-      ];
+      ].filter(c => chk(c.chk));
+      if (cobAdc.length) { drawSection('COBERTURAS ADICIONAIS'); drawCobTable(cobAdc); }
 
-      if (contratadas.length) {
-        drawSection('COBERTURAS CONTRATADAS');
-        pb(10);
-        // Header da tabela
-        doc.setFillColor(...colLightGray);
-        doc.rect(margin, y, contentW, 8, 'F');
-        doc.setDrawColor(...colGray); doc.setLineWidth(0.3);
-        doc.rect(margin, y, contentW, 8);
-        doc.setFontSize(8); doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...colDark);
-        doc.text('Cobertura', margin + 3, y + 5.5);
-        doc.text('Valor / Importância Segurada', margin + contentW - 3, y + 5.5, { align: 'right' });
-        y += 8;
-
-        contratadas.forEach((c, i) => {
-          pb(8);
-          if (i % 2 === 0) {
-            doc.setFillColor(250, 250, 250);
-            doc.rect(margin, y, contentW, 8, 'F');
-          }
-          doc.setDrawColor(...colGray); doc.setLineWidth(0.3);
-          doc.rect(margin, y, contentW, 8);
-          doc.setFontSize(8.5); doc.setFont('helvetica', 'normal');
-          doc.setTextColor(...colDark);
-          doc.text(g(c.lbl) || '—', margin + 3, y + 5.5);
-          if (c.val) {
-            const val = g(c.val);
-            if (val) {
-              doc.setFont('helvetica', 'bold');
-              doc.text(val, margin + contentW - 3, y + 5.5, { align: 'right' });
-            }
-          }
-          y += 8;
-        });
-        y += 4;
-      }
-
-      // ── INFORMAÇÕES COMPLEMENTARES ──────────────────────────────────
-      const infoItems = [];
-      if (g('franquiaValor'))      infoItems.push(`Franquia principal: ${g('franquiaValor')}`);
-      if (g('franquias'))          infoItems.push(`Franquias de serviços: ${g('franquias')}`);
-      if (chk('chkAssistencia'))   infoItems.push(`Assistência 24h — ${g('assistenciaKm') || '200'}km de reboque`);
-      if (chk('chkCarroReserva'))  infoItems.push(`Carro reserva por ${g('carroReservaDias') || '7'} diárias`);
-
-      if (infoItems.length) {
-        drawSection('INFORMAÇÕES COMPLEMENTARES');
-        infoItems.forEach(item => {
-          pb(7);
-          doc.setFontSize(8.5); doc.setFont('helvetica', 'normal');
-          doc.setTextColor(...colDark);
-          doc.text(`\u2022 ${item}`, margin + 3, y + 5);
-          y += 7;
-        });
-        y += 3;
+      // ── FRANQUIAS ADICIONAIS ────────────────────────────────────────
+      const franqTxt = g('franquias');
+      if (franqTxt) {
+        const itens = franqTxt.split(' | ').map(s => s.trim()).filter(Boolean);
+        const colW = (contentW - 2) / 2;
+        const linhas = Math.ceil(itens.length / 2);
+        drawSection('FRANQUIAS ADICIONAIS');
+        pb(linhas * 6 + 2);
+        for (let i = 0; i < itens.length; i += 2) {
+          pb(6);
+          doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colDark);
+          doc.text(itens[i],     margin,             y + 4);
+          if (itens[i + 1]) doc.text(itens[i + 1], margin + colW + 2, y + 4);
+          y += 6;
+        }
+        y += 2;
       }
 
       // ── VALORES DA PROPOSTA ─────────────────────────────────────────
       drawSection('VALORES DA PROPOSTA');
-
-      // Prêmio Total | Franquia
-      pb(16);
+      pb(14);
       const halfW = (contentW - 2) / 2;
       doc.setDrawColor(...colGray); doc.setLineWidth(0.3);
-      doc.rect(margin, y, halfW, 14);
-      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colLabelGray);
-      doc.text('PRÊMIO TOTAL', margin + 2, y + 4);
-      doc.setFontSize(13); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colBlue);
-      doc.text(g('premioTotal') || '—', margin + 2, y + 11);
+      doc.rect(margin, y, halfW, 13);
+      doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colLabelGray);
+      doc.text('PRÊMIO TOTAL', margin + 2, y + 3.5);
+      doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colBlue);
+      doc.text(g('premioTotal') || '—', margin + 2, y + 10.5);
 
       doc.setDrawColor(...colGray);
-      doc.rect(margin + halfW + 2, y, halfW, 14);
-      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colLabelGray);
-      doc.text('FRANQUIA', margin + halfW + 4, y + 4);
-      doc.setFontSize(13); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colDark);
-      doc.text(g('franquiaValor') || '—', margin + halfW + 4, y + 11);
-      y += 17;
+      doc.rect(margin + halfW + 2, y, halfW, 13);
+      doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colLabelGray);
+      doc.text('FRANQUIA', margin + halfW + 4, y + 3.5);
+      doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colDark);
+      doc.text(g('franquiaValor') || '—', margin + halfW + 4, y + 10.5);
+      y += 15;
 
-      // Formas de pagamento
       pb(7);
-      doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colBlue);
-      doc.text('FORMAS DE PAGAMENTO', margin, y + 5);
-      y += 9;
+      doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colBlue);
+      doc.text('FORMAS DE PAGAMENTO', margin, y + 4);
+      y += 7;
 
       const pagtos = [];
       if (g('aVista')) pagtos.push(['À VISTA', g('aVista')]);
@@ -1601,42 +1573,37 @@
       if (dp && dv) pagtos.push(['DÉBITO EM CONTA', `${dp}x de R$ ${dv}`]);
 
       pagtos.forEach(([label, valor]) => {
-        pb(10);
-        doc.setFillColor(...colLightGray);
-        doc.rect(margin, y, contentW, 10, 'F');
-        doc.setDrawColor(...colGray); doc.setLineWidth(0.3);
-        doc.rect(margin, y, contentW, 10);
-        doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colLabelGray);
-        doc.text(label, margin + 3, y + 6.5);
-        doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colDark);
-        doc.text(valor, margin + contentW - 3, y + 6.5, { align: 'right' });
-        y += 11;
+        pb(9);
+        doc.setFillColor(...colLightGray); doc.rect(margin, y, contentW, 9, 'F');
+        doc.setDrawColor(...colGray); doc.setLineWidth(0.3); doc.rect(margin, y, contentW, 9);
+        doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colLabelGray);
+        doc.text(label, margin + 3, y + 5.8);
+        doc.setFontSize(9.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colDark);
+        doc.text(valor, margin + contentW - 3, y + 5.8, { align: 'right' });
+        y += 10;
       });
-      y += 4;
+      y += 3;
 
       // ── OBSERVAÇÕES ─────────────────────────────────────────────────
-      pb(16);
-      doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(150, 150, 150);
-      doc.text('Esta cotação tem validade de 15 dias. Os valores e condições apresentados estão sujeitos à análise e aprovação da seguradora.', margin, y, { maxWidth: contentW });
-      y += 6;
-      doc.text('A contratação do seguro está condicionada ao pagamento da primeira parcela e aprovação da proposta pela seguradora.', margin, y, { maxWidth: contentW });
-      y += 10;
+      pb(12);
+      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(150, 150, 150);
+      doc.text('Esta cotação tem validade de 15 dias. Os valores e condições estão sujeitos à análise e aprovação da seguradora.', margin, y, { maxWidth: contentW });
+      y += 5;
+      doc.text('A contratação está condicionada ao pagamento da primeira parcela e aprovação da proposta pela seguradora.', margin, y, { maxWidth: contentW });
+      y += 8;
 
       // ── DIFERENCIAIS ────────────────────────────────────────────────
       drawSection('DIFERENCIAIS SENA SEGUROS');
       [
         'A única da região que conta com uma assistência 24H verdadeiramente humana',
         'Agilidade nos processos de sinistro e indenizações',
-        'Atendimento personalizado e especializado',
-        'Parceria com as melhores seguradoras do Brasil',
       ].forEach(d => {
-        pb(7);
-        doc.setFontSize(8.5); doc.setFont('helvetica', 'bold');
-        doc.setTextColor(34, 139, 34);
-        doc.text('\u2713', margin + 2, y + 5);
+        pb(6);
+        doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(34, 139, 34);
+        doc.text('\u2713', margin + 2, y + 4.5);
         doc.setFont('helvetica', 'normal'); doc.setTextColor(...colDark);
-        doc.text(d, margin + 8, y + 5);
-        y += 7;
+        doc.text(d, margin + 8, y + 4.5);
+        y += 6;
       });
 
       drawFooter();
