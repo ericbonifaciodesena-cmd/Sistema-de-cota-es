@@ -1437,18 +1437,18 @@
         doc.text('Cobertura', margin + 3, y + 4.5);
         doc.text('Valor / Import\u00e2ncia Segurada', margin + contentW - 3, y + 4.5, { align: 'right' });
         y += 7;
-        lista.forEach((c, i) => {
-          checkYSpace(5);
-          if (i % 2 === 0) { doc.setFillColor(245, 247, 250); doc.roundedRect(margin, y, contentW, 7, 1, 1, 'F'); }
-          doc.setDrawColor(5, 22, 37); doc.setLineWidth(0.3);
-          doc.roundedRect(margin, y, contentW, 7, 1, 1, 'S');
+        lista.forEach((c) => {
+          checkYSpace(6);
+          doc.setDrawColor(220, 225, 230);
+          doc.setLineWidth(0.2);
+          doc.line(14, y, 196, y);
           doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(5, 22, 37);
-          doc.text((c.getLabel ? c.getLabel() : g(c.lbl)) || '\u2014', margin + 3, y + 4.5);
+          doc.text((c.getLabel ? c.getLabel() : g(c.lbl)) || '\u2014', margin + 3, y + 3.5);
           if (c.val) {
             const v = g(c.val);
-            if (v) { doc.setFont('helvetica', 'bold'); doc.text(v, margin + contentW - 3, y + 4.5, { align: 'right' }); }
+            if (v) { doc.setFont('helvetica', 'bold'); doc.text(v, margin + contentW - 3, y + 3.5, { align: 'right' }); }
           }
-          y += 4.5;
+          y += 5;
         });
         y += 3;
       }
