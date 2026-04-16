@@ -1220,43 +1220,43 @@
         document.getElementById('lblAssistencia').value = `Assistência 24h — ${kmTotal}km`;
       }
 
-      // Vidros: "Vidros Completo" ou "Vidros Não possui"
-      const vidrosM = text.match(/Vidros\s+(Completo|Não possui)/i);
-      const temVidros = !!(vidrosM && !/não possui/i.test(vidrosM[1]));
-      check('chkVidros', temVidros);
+      // Serviços: nomes e valores aparecem separados no texto extraído.
+      // Regex único captura os 6 valores em sequência após a lista de nomes.
+      const svcM = text.match(
+        /Vidros\s+Logomarca \(vidros\)\s+Martelinho e para-choque\s+Lataria e pintura\s+Roda, pneu e suspens[aã]o\s+Carro reserva\s+(Completo|Não possui)\s+(Possui|Não possui)\s+(Possui|Não possui)\s+(Possui|Não possui)\s+(Possui|Não possui)\s+(\d+)\s+diárias/i
+      );
+      if (svcM) {
+        const [, gVidros, gLogo, gMartelinho, gLataria, gRoda, gDiarias] = svcM;
 
-      // Logomarca (vidros): "Logomarca (vidros) Possui" ou "Não possui"
-      const logoM = text.match(/Logomarca \(vidros\)\s+(Possui|Não possui)/i);
-      const temLogo = !!(logoM && !/não possui/i.test(logoM[1]));
-      if (temVidros && temLogo) {
-        check('chkLogomarca', true);
-        document.getElementById('lblVidros').value = 'Vidros, faróis, lanternas e retrovisores com logomarca';
-      }
+        // Vidros (grupo 1)
+        const temVidros = !/não possui/i.test(gVidros);
+        check('chkVidros', temVidros);
 
-      // Carro reserva: "Carro reserva X diárias"
-      const carroM = text.match(/Carro reserva\s+(\d+)\s+diárias/i);
-      if (carroM) {
+        // Logomarca (grupo 2)
+        const temLogo = !/não possui/i.test(gLogo);
+        if (temVidros && temLogo) {
+          check('chkLogomarca', true);
+          document.getElementById('lblVidros').value = 'Vidros, faróis, lanternas e retrovisores com logomarca';
+        }
+
+        // Martelinho e para-choque (grupo 3) → Troca para-choque
+        check('chkParachoque', !/não possui/i.test(gMartelinho));
+
+        // Lataria e pintura (grupo 4) → Pequenos reparos
+        check('chkPequenosReparos', !/não possui/i.test(gLataria));
+
+        // Roda, pneu e suspensão (grupo 5) → Proteção rodas
+        check('chkRodas', !/não possui/i.test(gRoda));
+
+        // Carro reserva (grupo 6)
         check('chkCarroReserva', true);
-        document.getElementById('carroReservaDias').value = carroM[1];
-        document.getElementById('lblCarroReserva').value = `Carro reserva — ${carroM[1]} dias`;
+        document.getElementById('carroReservaDias').value = gDiarias;
+        document.getElementById('lblCarroReserva').value = `Carro reserva — ${gDiarias} dias`;
       }
-
-      // Lataria e pintura → Pequenos reparos
-      const latariaM = text.match(/Lataria e pintura\s+(Possui|Não possui)/i);
-      check('chkPequenosReparos', !!(latariaM && !/não possui/i.test(latariaM[1])));
-
-      // Martelinho e para-choque → Troca para-choque
-      const martelinhoM = text.match(/Martelinho e para-choque\s+(Possui|Não possui)/i);
-      check('chkParachoque', !!(martelinhoM && !/não possui/i.test(martelinhoM[1])));
-
-      // Roda, pneu e suspensão → Proteção rodas
-      const rodaM = text.match(/Roda,\s*pneu e suspensão\s+(Possui|Não possui)/i);
-      check('chkRodas', !!(rodaM && !/não possui/i.test(rodaM[1])));
 
       // ── FRANQUIAS DE SERVIÇOS ──────────────────────────────────────
-      // Busca no bloco específico; se não achar, busca no texto completo
-      const franqIdx = text.search(/FRANQUIAS DE SERVI/i);
-      const srcFranq = franqIdx >= 0 ? text.slice(franqIdx, franqIdx + 3000) : text;
+      // Cabeçalho de seção tem ícone e não aparece no texto extraído; busca no texto completo
+      const srcFranq = text;
       const pecas = [
         ['Parabrisa',                /Parabrisa\s+R\$\s*([\d.,]+)/i],
         ['Vigia/Traseiro',           /Vigia\/Traseiro\s+R\$\s*([\d.,]+)/i],
