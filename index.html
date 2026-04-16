@@ -1388,8 +1388,8 @@
         return s;
       }
 
-      function pb(h) {
-        if (y + (h || 10) > 268) { doc.addPage(); y = margin; }
+      function checkYSpace(needed) {
+        if (y + needed > 268) { doc.addPage(); y = 16; }
       }
 
       function drawFooter(i, totalPages) {
@@ -1403,50 +1403,50 @@
       }
 
       function drawSection(title) {
-        pb(12);
+        checkYSpace(12);
         doc.setFillColor(5, 22, 37);
-        doc.roundedRect(14, y, 182, 9, 2, 2, 'F');
+        doc.roundedRect(14, y, 182, 8, 2, 2, 'F');
         doc.setFillColor(55, 125, 246);
-        doc.roundedRect(14, y, 4, 9, 2, 2, 'F');
+        doc.roundedRect(14, y, 4, 8, 1, 1, 'F');
         doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
-        doc.text(title.toUpperCase(), 22, y + 6.2);
-        y += 12;
+        doc.text(title.toUpperCase(), 22, y + 5.5);
+        y += 11;
       }
 
-      function caixaCampo(label, valor, x, cy, w, h = 15) {
+      function caixaCampo(label, valor, x, cy, w, h = 12) {
         doc.setDrawColor(5, 22, 37);
         doc.setLineWidth(0.3);
         doc.roundedRect(x, cy, w, h, 2, 2, 'S');
-        doc.setFontSize(6.5);
+        doc.setFontSize(6);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(107, 114, 128);
-        doc.text(label, x + 3, cy + 5);
-        doc.setFontSize(9);
+        doc.text(label, x + 3, cy + 4);
+        doc.setFontSize(8.5);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(5, 22, 37);
-        doc.text(valor || '\u2014', x + 3, cy + 11);
+        doc.text(valor || '\u2014', x + 3, cy + 9.5);
       }
 
       function drawCobTable(lista) {
-        pb(10);
+        checkYSpace(10);
         doc.setFillColor(5, 22, 37);
-        doc.roundedRect(margin, y, contentW, 10, 1, 1, 'F');
+        doc.roundedRect(margin, y, contentW, 7, 1, 1, 'F');
         doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
-        doc.text('Cobertura', margin + 3, y + 6.3);
-        doc.text('Valor / Import\u00e2ncia Segurada', margin + contentW - 3, y + 6.3, { align: 'right' });
-        y += 10;
+        doc.text('Cobertura', margin + 3, y + 4.5);
+        doc.text('Valor / Import\u00e2ncia Segurada', margin + contentW - 3, y + 4.5, { align: 'right' });
+        y += 7;
         lista.forEach((c, i) => {
-          pb(10);
-          if (i % 2 === 0) { doc.setFillColor(245, 247, 250); doc.roundedRect(margin, y, contentW, 10, 1, 1, 'F'); }
+          checkYSpace(7);
+          if (i % 2 === 0) { doc.setFillColor(245, 247, 250); doc.roundedRect(margin, y, contentW, 7, 1, 1, 'F'); }
           doc.setDrawColor(5, 22, 37); doc.setLineWidth(0.3);
-          doc.roundedRect(margin, y, contentW, 10, 1, 1, 'S');
+          doc.roundedRect(margin, y, contentW, 7, 1, 1, 'S');
           doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(5, 22, 37);
-          doc.text((c.getLabel ? c.getLabel() : g(c.lbl)) || '\u2014', margin + 3, y + 6.3);
+          doc.text((c.getLabel ? c.getLabel() : g(c.lbl)) || '\u2014', margin + 3, y + 4.5);
           if (c.val) {
             const v = g(c.val);
-            if (v) { doc.setFont('helvetica', 'bold'); doc.text(v, margin + contentW - 3, y + 6.3, { align: 'right' }); }
+            if (v) { doc.setFont('helvetica', 'bold'); doc.text(v, margin + contentW - 3, y + 4.5, { align: 'right' }); }
           }
-          y += 10;
+          y += 7;
         });
         y += 3;
       }
@@ -1481,69 +1481,69 @@
 
       // \u2500\u2500 SEGURADORA \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       drawSection('SEGURADORA');
-      pb(15);
+      checkYSpace(12);
       caixaCampo('Seguradora', g('seguradora'), 14, y, 182);
-      y += 15;
+      y += 13;
 
       // \u2500\u2500 DADOS DO SEGURADO \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       drawSection('DADOS DO SEGURADO');
-      pb(15);
+      checkYSpace(12);
       caixaCampo('Nome', g('nome'), 14, y, 89);
       caixaCampo('CPF', g('cpf'), 105, y, 91);
-      y += 15;
-      pb(15);
+      y += 13;
+      checkYSpace(12);
       caixaCampo('Data de Nascimento', fmtDate(g('dataNasc')), 14, y, 89);
       caixaCampo('Estado Civil', g('estadoCivil'), 105, y, 91);
-      y += 15;
+      y += 13;
 
       // \u2500\u2500 CONDUTOR PRINCIPAL \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       drawSection('CONDUTOR PRINCIPAL');
-      pb(15);
+      checkYSpace(12);
       caixaCampo('Nome Completo', g('condutorNome'), 14, y, 182);
-      y += 15;
-      pb(15);
+      y += 13;
+      checkYSpace(12);
       caixaCampo('CPF', g('condutorCpf'), 14, y, 89);
       caixaCampo('Data de Nascimento', fmtDate(g('condutorDataNasc')), 105, y, 91);
-      y += 15;
-      pb(15);
+      y += 13;
+      checkYSpace(12);
       caixaCampo('Estado Civil', g('condutorEstadoCivil'), 14, y, 89);
       caixaCampo('CEP de Pernoite', g('cep'), 105, y, 91);
-      y += 15;
-      pb(15);
+      y += 13;
+      checkYSpace(12);
       caixaCampo('Jovem Condutor', g('jovemCondutor'), 14, y, 89);
       caixaCampo('Uso do Ve\u00edculo', g('uso'), 105, y, 91);
-      y += 15;
+      y += 13;
 
       // \u2500\u2500 DADOS DO VE\u00cdCULO \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       drawSection('DADOS DO VE\u00cdCULO');
-      pb(16);
+      checkYSpace(16);
       doc.setDrawColor(5, 22, 37);
       doc.setLineWidth(0.3);
-      doc.roundedRect(14, y, 182, 15, 2, 2, 'S');
+      doc.roundedRect(14, y, 182, 12, 2, 2, 'S');
       doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(107, 114, 128);
-      doc.text('Modelo', 17, y + 5);
+      doc.text('Modelo', 17, y + 4);
       doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(5, 22, 37);
-      doc.text(g('modelo') || '\u2014', 17, y + 11);
+      doc.text(g('modelo') || '\u2014', 17, y + 9.5);
       doc.setDrawColor(5, 22, 37); doc.setLineWidth(0.2);
-      doc.line(118, y + 1, 118, y + 14);
+      doc.line(118, y + 1, 118, y + 11);
       doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(107, 114, 128);
-      doc.text('Placa', 121, y + 5);
+      doc.text('Placa', 121, y + 4);
       doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(5, 22, 37);
-      doc.text(g('placa') || '\u2014', 121, y + 11);
+      doc.text(g('placa') || '\u2014', 121, y + 9.5);
       doc.setDrawColor(5, 22, 37); doc.setLineWidth(0.2);
-      doc.line(158, y + 1, 158, y + 14);
+      doc.line(158, y + 1, 158, y + 11);
       doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(107, 114, 128);
-      doc.text('Ano', 161, y + 5);
+      doc.text('Ano', 161, y + 4);
       doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(5, 22, 37);
-      doc.text(g('ano') || '\u2014', 161, y + 11);
-      y += 17;
+      doc.text(g('ano') || '\u2014', 161, y + 9.5);
+      y += 13;
 
       // \u2500\u2500 VIG\u00caNCIA \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       drawSection('VIG\u00caNCIA');
-      pb(15);
+      checkYSpace(12);
       caixaCampo('In\u00edcio', fmtDate(g('vigenciaInicio')), 14, y, 89);
       caixaCampo('T\u00e9rmino', fmtDate(g('vigenciaTermino')), 105, y, 91);
-      y += 15;
+      y += 13;
 
       // \u2500\u2500 COBERTURAS ESSENCIAIS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       const cobEss = [
@@ -1578,11 +1578,12 @@
       // \u2500\u2500 FRANQUIAS ADICIONAIS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       const franqItens = (g('franquias') || '').split('|').map(s => s.trim()).filter(Boolean);
       if (franqItens.length) {
+        checkYSpace(20);
         drawSection('FRANQUIAS ADICIONAIS');
-        const colX = [14, 60, 106, 152];
+        const colX = [16, 62, 108, 154];
+        const lineH = 5.0;
         const rows = Math.ceil(franqItens.length / 4);
-        const boxH = rows * 5.5 + 8;
-        pb(boxH + 4);
+        const boxH = rows * lineH + 7;
         doc.setFillColor(248, 249, 251);
         doc.roundedRect(14, y, 182, boxH, 2, 2, 'F');
         doc.setDrawColor(5, 22, 37);
@@ -1590,17 +1591,17 @@
         doc.roundedRect(14, y, 182, boxH, 2, 2, 'S');
         let col = 0, rowY = y + 5;
         franqItens.forEach(item => {
-          doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(5, 22, 37);
-          doc.text('\u2022 ' + item, colX[col] + 2, rowY);
+          doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(5, 22, 37);
+          doc.text('\u2022 ' + item, colX[col] + 1, rowY);
           col++;
-          if (col >= 4) { col = 0; rowY += 5.5; }
+          if (col >= 4) { col = 0; rowY += lineH; }
         });
         y += boxH + 4;
       }
 
       // \u2500\u2500 VALORES DA PROPOSTA \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       drawSection('VALORES DA PROPOSTA');
-      pb(26);
+      checkYSpace(26);
       doc.setFillColor(5, 22, 37);
       doc.roundedRect(14, y, 88, 22, 2, 2, 'F');
       doc.setTextColor(150, 180, 220);
@@ -1630,7 +1631,7 @@
       ].filter(([, v]) => v);
 
       const boxH = pgtos.length * 6 + 10;
-      pb(boxH + 4);
+      checkYSpace(boxH + 4);
       doc.setFillColor(248, 249, 251);
       doc.roundedRect(14, y, 182, boxH, 2, 2, 'F');
       doc.setDrawColor(5, 22, 37);
@@ -1651,7 +1652,7 @@
       y += boxH + 4;
 
       // \u2500\u2500 OBSERVA\u00c7\u00d5ES \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-      pb(12);
+      checkYSpace(12);
       doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(150, 150, 150);
       doc.text('Esta cota\u00e7\u00e3o tem validade de 15 dias. Os valores e condi\u00e7\u00f5es est\u00e3o sujeitos \u00e0 an\u00e1lise e aprova\u00e7\u00e3o da seguradora.', margin, y, { maxWidth: contentW });
       y += 5;
@@ -1659,7 +1660,7 @@
       y += 8;
 
       // \u2500\u2500 DIFERENCIAIS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-      pb(28);
+      checkYSpace(28);
       doc.setFillColor(5, 22, 37);
       doc.roundedRect(14, y, 182, 24, 2, 2, 'F');
       doc.setTextColor(255, 255, 255);
@@ -1678,7 +1679,16 @@
       for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
         if (i === 1) continue;
-        drawFooter(i, totalPages);
+        doc.setFillColor(5, 22, 37);
+        doc.rect(0, 282, 210, 15, 'F');
+        doc.setFontSize(6.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(255, 255, 255);
+        doc.text('SENA SEGUROS - Corretora de Seguros', 14, 288);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(150, 180, 220);
+        doc.text('Telefone: (48) 3272-0526  |  E-mail: senaseguros@senaseguros.com.br  |  www.senaseguros.com.br', 14, 293);
+        doc.text(String(i) + ' / ' + String(totalPages), 196, 293, { align: 'right' });
       }
 
       const nomeCliente = (document.getElementById('nome')?.value || 'cotacao')
