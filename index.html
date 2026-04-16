@@ -1209,19 +1209,42 @@
       if (cvCorpV) document.getElementById('valCartaVerdeCorp').value = 'US$ ' + cvCorpV;
 
       // ── COBERTURAS ADICIONAIS ──────────────────────────────────────
-      // Página 3: nomes em sequência, valores logo após em sequência
-      const svcRegex = /Vidros\s+Logomarca \(vidros\)\s+Martelinho e para-choque\s+Lataria e pintura\s+Roda, pneu e suspens[aã]o\s+Carro reserva\s+(Completo|N[aã]o possui)\s+(Possui|N[aã]o possui)\s+(Possui|N[aã]o possui)\s+(Possui|N[aã]o possui)\s+(Possui|N[aã]o possui)\s+(\d+)\s+di[aá]rias/i;
-      const svcM = text.match(svcRegex);
-      console.log('svcM resultado:', svcM);
-      if (svcM) {
-        if (svcM[1] === 'Completo') document.getElementById('chkVidros').checked = true;
-        if (svcM[2] === 'Possui')   document.getElementById('chkLogomarca').checked = true;
-        if (svcM[3] === 'Possui')   document.getElementById('chkParachoque').checked = true;
-        if (svcM[4] === 'Possui')   document.getElementById('chkPequenosReparos').checked = true;
-        if (svcM[5] === 'Possui')   document.getElementById('chkRodas').checked = true;
+      // Os valores de serviço não aparecem no texto extraído pelo pdf.js;
+      // deduz o que está contratado pela presença de franquias com valor > 0
+
+      function franqTemValor(re) {
+        const m = text.match(re);
+        return !!(m && m[1] && parseFloat(m[1].replace(/\./g, '').replace(',', '.')) > 0);
+      }
+
+      // Vidros: Parabrisa com franquia > 0
+      if (franqTemValor(/Parabrisa\s+R\$\s*([\d.,]+)/i))
+        document.getElementById('chkVidros').checked = true;
+
+      // Logomarca
+      if (/Logomarca \(vidros\)\s+Possui(?!\s+não)/i.test(text))
+        document.getElementById('chkLogomarca').checked = true;
+
+      // Martelinho/Para-choque
+      if (franqTemValor(/Martelinho \(teto\)\s+R\$\s*([\d.,]+)/i) ||
+          franqTemValor(/Para-choque \(troca\)\s+R\$\s*([\d.,]+)/i))
+        document.getElementById('chkParachoque').checked = true;
+
+      // Lataria e pintura → Pequenos reparos
+      if (franqTemValor(/Lataria e pintura\s+R\$\s*([\d.,]+)/i))
+        document.getElementById('chkPequenosReparos').checked = true;
+
+      // Roda, Pneu e Suspensão → Proteção rodas
+      if (franqTemValor(/Roda,\s*Pneu e Suspens[aã]o\s+R\$\s*([\d.,]+)/i))
+        document.getElementById('chkRodas').checked = true;
+
+      // Carro reserva: busca direta e fallback "X diárias Básico"
+      const carroM = text.match(/Carro reserva\s+(\d+)\s+diárias/i)
+                  || text.match(/(\d+)\s+diárias\s+Básico/i);
+      if (carroM) {
         document.getElementById('chkCarroReserva').checked = true;
-        document.getElementById('carroReservaDias').value = svcM[6];
-        document.getElementById('lblCarroReserva').value = `Carro reserva — ${svcM[6]} dias`;
+        document.getElementById('carroReservaDias').value = carroM[1];
+        document.getElementById('lblCarroReserva').value = `Carro reserva — ${carroM[1]} dias`;
       }
 
       // Assistência 24h
