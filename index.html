@@ -1383,12 +1383,11 @@
       function drawFooter(i, totalPages) {
         doc.setFillColor(12, 39, 60);
         doc.rect(0, 282, 210, 15, 'F');
-        doc.setFontSize(7); doc.setTextColor(180, 200, 220); doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
         doc.text('SENA SEGUROS - Corretora de Seguros', 14, 288);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(150, 180, 210);
         doc.text('Telefone: (48) 3272-0526  |  E-mail: senaseguros@senaseguros.com.br  |  www.senaseguros.com.br', 14, 293);
-        doc.setTextColor(255, 255, 255);
-        doc.text(`${i}/${totalPages}`, 196, 293, { align: 'right' });
+        doc.text(`${i} / ${totalPages}`, 196, 293, { align: 'right' });
       }
 
       function drawSection(title) {
@@ -1455,9 +1454,9 @@
       }
 
       // ── CABEÇALHO ──────────────────────────────────────────────────
-      // Fundo escuro no topo
+      // Fundo escuro no topo (altura 38mm)
       doc.setFillColor(12, 39, 60);
-      doc.rect(0, 0, 210, 50, 'F');
+      doc.rect(0, 0, 210, 38, 'F');
 
       // Logo
       const logoEl = document.getElementById('logoImg');
@@ -1471,50 +1470,30 @@
       }
 
       // Subtítulo
-      doc.setTextColor(180, 200, 220);
+      doc.setTextColor(150, 180, 210);
       doc.setFontSize(8); doc.setFont('helvetica', 'normal');
       doc.text('Proposta de Cotação de Seguro Auto', 8, 22);
 
-      // Nome do cliente em destaque
+      // Nome do cliente
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(16); doc.setFont('helvetica', 'bold');
-      const nomeHeader = (document.getElementById('nome')?.value || '').toUpperCase();
-      doc.text(nomeHeader, 8, 33, { maxWidth: 118 });
+      doc.setFontSize(15); doc.setFont('helvetica', 'bold');
+      doc.text((document.getElementById('nome')?.value || '').toUpperCase(), 8, 32, { maxWidth: 120 });
 
-      // Validade abaixo do nome
-      const validade = g('validadeCotacao') ? fmtDate(g('validadeCotacao')) : '';
-      doc.setTextColor(150, 180, 210); doc.setFontSize(7); doc.setFont('helvetica', 'normal');
-      if (validade) doc.text('Validade: ' + validade, 8, 40);
+      // Canto superior direito — Data, Nº Cotação, Validade
+      doc.setTextColor(180, 200, 220);
+      doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+      const dataHoje = new Date().toLocaleDateString('pt-BR');
+      doc.text('Data: ' + dataHoje, 196, 10, { align: 'right' });
+      if (g('numeroCotacao')) doc.text('Nº Cotação: ' + g('numeroCotacao'), 196, 16, { align: 'right' });
+      const validade = g('validadeCotacao') ? g('validadeCotacao').split('-').reverse().join('/') : '';
+      if (validade) doc.text('Validade: ' + validade, 196, 22, { align: 'right' });
 
-      // Caixa azul com valor total (lado direito)
-      doc.setFillColor(55, 125, 246);
-      doc.roundedRect(130, 6, 72, 32, 3, 3, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(7); doc.setFont('helvetica', 'bold');
-      doc.text('VALOR TOTAL', 166, 14, { align: 'center' });
-      doc.setFontSize(14);
-      doc.text(g('premioTotal') || 'R$ 0,00', 166, 23, { align: 'center' });
+      // Linha separadora azul
+      doc.setDrawColor(55, 125, 246);
+      doc.setLineWidth(0.5);
+      doc.line(0, 38, 210, 38);
 
-      // Parcelas dentro da caixa azul
-      const cartP = g('cartaoParcelas'), cartV = g('cartaoValor');
-      if (cartP && cartV) {
-        doc.setFillColor(12, 39, 60);
-        doc.roundedRect(135, 25, 62, 8, 2, 2, 'F');
-        doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(255, 255, 255);
-        doc.text(`${cartP}x de R$ ${cartV}`, 166, 30.5, { align: 'center' });
-      }
-
-      // Franquia (no header)
-      doc.setTextColor(180, 200, 220); doc.setFontSize(7); doc.setFont('helvetica', 'normal');
-      doc.text('FRANQUIA', 166, 42, { align: 'center' });
-      doc.setTextColor(255, 255, 255); doc.setFontSize(9); doc.setFont('helvetica', 'bold');
-      doc.text(g('franquiaValor') || '—', 166, 49, { align: 'center' });
-
-      // Info Sena no rodapé do header
-      doc.setTextColor(150, 180, 210); doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
-      doc.text('SENA SEGUROS - Corretora de Seguros  |  Tel: (48) 3272-0526  |  senaseguros@senaseguros.com.br', 105, 54, { align: 'center' });
-
-      y = 60;
+      y = 46;
 
       // ── SEGURADORA ──────────────────────────────────────────────────
       drawSection('SEGURADORA');
@@ -1593,6 +1572,29 @@
         }
         y += 2;
       }
+
+      // ── VALORES DA PROPOSTA ────────────────────────────────────────
+      drawSection('VALORES DA PROPOSTA');
+      pb(26);
+      // Caixa Prêmio Total
+      doc.setFillColor(12, 39, 60);
+      doc.roundedRect(14, y, 88, 22, 2, 2, 'F');
+      doc.setTextColor(150, 180, 210);
+      doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+      doc.text('PRÊMIO TOTAL', 58, y + 7, { align: 'center' });
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+      doc.text(g('premioTotal') || 'R$ 0,00', 58, y + 16, { align: 'center' });
+      // Caixa Franquia
+      doc.setFillColor(12, 39, 60);
+      doc.roundedRect(108, y, 88, 22, 2, 2, 'F');
+      doc.setTextColor(150, 180, 210);
+      doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+      doc.text('FRANQUIA', 152, y + 7, { align: 'center' });
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+      doc.text(g('franquiaValor') || 'R$ 0,00', 152, y + 16, { align: 'center' });
+      y += 28;
 
       // ── FORMAS DE PAGAMENTO ─────────────────────────────────────────
       drawSection('FORMAS DE PAGAMENTO');
