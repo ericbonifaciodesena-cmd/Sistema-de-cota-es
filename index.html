@@ -1208,26 +1208,23 @@
       if (cvCorpV) document.getElementById('valCartaVerdeCorp').value = 'US$ ' + cvCorpV;
 
       // ── COBERTURAS ADICIONAIS ──────────────────────────────────────
-      // Busca independente para cada serviço no texto completo
-
-      const vidrosM     = text.match(/Vidros\s+Completo/i);
-      const logomarcaM  = text.match(/Logomarca \(vidros\)\s+Possui(?!\s+não)/i);
-      const martelinhoM = text.match(/Martelinho e para-choque\s+Possui(?!\s+não)/i);
-      const lalariaM    = text.match(/Lataria e pintura\s+Possui(?!\s+não)/i);
-      const rodaM       = text.match(/Roda, pneu e suspens[aã]o\s+Possui(?!\s+não)/i);
-      const carroM      = text.match(/Carro reserva\s+(\d+)\s+diárias/i);
-      const assistenciaM = text.match(/Assistência 24 horas\s+Completa/i);
-
-      if (vidrosM)     document.getElementById('chkVidros').checked = true;
-      if (logomarcaM)  document.getElementById('chkLogomarca').checked = true;
-      if (martelinhoM) document.getElementById('chkParachoque').checked = true;
-      if (lalariaM)    document.getElementById('chkPequenosReparos').checked = true;
-      if (rodaM)       document.getElementById('chkRodas').checked = true;
-      if (carroM) {
+      // Página 3: nomes em sequência, valores logo após em sequência
+      const svcRegex = /Vidros\s+Logomarca \(vidros\)\s+Martelinho e para-choque\s+Lataria e pintura\s+Roda, pneu e suspens[aã]o\s+Carro reserva\s+(Completo|N[aã]o possui)\s+(Possui|N[aã]o possui)\s+(Possui|N[aã]o possui)\s+(Possui|N[aã]o possui)\s+(Possui|N[aã]o possui)\s+(\d+)\s+di[aá]rias/i;
+      const svcM = text.match(svcRegex);
+      console.log('svcM resultado:', svcM);
+      if (svcM) {
+        if (svcM[1] === 'Completo') document.getElementById('chkVidros').checked = true;
+        if (svcM[2] === 'Possui')   document.getElementById('chkLogomarca').checked = true;
+        if (svcM[3] === 'Possui')   document.getElementById('chkParachoque').checked = true;
+        if (svcM[4] === 'Possui')   document.getElementById('chkPequenosReparos').checked = true;
+        if (svcM[5] === 'Possui')   document.getElementById('chkRodas').checked = true;
         document.getElementById('chkCarroReserva').checked = true;
-        document.getElementById('carroReservaDias').value = carroM[1];
-        document.getElementById('lblCarroReserva').value = `Carro reserva — ${carroM[1]} dias`;
+        document.getElementById('carroReservaDias').value = svcM[6];
+        document.getElementById('lblCarroReserva').value = `Carro reserva — ${svcM[6]} dias`;
       }
+
+      // Assistência 24h
+      const assistenciaM = text.match(/Assistência 24 horas\s+Completa/i);
       if (assistenciaM) {
         document.getElementById('chkAssistencia').checked = true;
         const kmM = text.match(/Km adicional de reboque\s+(\d+)\s*km/i);
