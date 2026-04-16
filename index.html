@@ -1608,9 +1608,14 @@
 
       drawFooter();
 
-      const primeiroNome = g('nome').split(' ')[0] || 'Sena';
-      const numCot = g('numeroCotacao') || 'xxx';
-      doc.save(`Cotacao_${primeiroNome}_${numCot}.pdf`);
+      const nomeCliente = (document.getElementById('nome')?.value || 'cotacao')
+        .trim()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9\s]/g, '')
+        .trim()
+        .replace(/\s+/g, '_');
+      const nomeArq = nomeCliente + '.pdf';
+      doc.save(nomeArq);
     }
 
     // ── Eventos de upload ─────────────────────────────────────────
