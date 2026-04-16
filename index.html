@@ -1220,6 +1220,11 @@
         document.getElementById('lblAssistencia').value = `Assistência 24h — ${kmTotal}km`;
       }
 
+      // Debug serviços
+      const idxVidros = text.indexOf('Vidros');
+      console.log('Vidros pos:', idxVidros);
+      console.log('Trecho serviços:', text.substring(idxVidros, idxVidros + 400));
+
       // Serviços: nomes e valores aparecem separados no texto extraído.
       // Regex único captura os 6 valores em sequência após a lista de nomes.
       const svcM = text.match(
