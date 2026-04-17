@@ -1416,7 +1416,8 @@
       }
 
       function secao(titulo) {
-        checkYSpace(12);
+        checkYSpace(15);
+        y += 3;
         doc.setFillColor(5, 22, 37);
         doc.roundedRect(14, y, 182, 8, 2, 2, 'F');
         doc.setFontSize(8);
@@ -1483,23 +1484,20 @@
       doc.setLineWidth(0.5);
       doc.line(0, 38, 210, 38);
 
-      y = 44;
+      y = 41;
 
       // \u2500\u2500 SEGURADORA \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       secao('VIG\u00caNCIA');
-      checkYSpace(11);
       caixaCampo('In\u00edcio', fmtDate(g('vigenciaInicio')), 14, y, 89);
       caixaCampo('T\u00e9rmino', fmtDate(g('vigenciaTermino')), 105, y, 91);
       y += 12;
 
       secao('SEGURADORA');
-      checkYSpace(11);
       caixaCampo('Seguradora', g('seguradora'), 14, y, 182);
       y += 12;
 
       // \u2500\u2500 DADOS DO SEGURADO \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       secao('DADOS DO SEGURADO');
-      checkYSpace(11);
       caixaCampo('Nome', g('nome'), 14, y, 89);
       caixaCampo('CPF', g('cpf'), 105, y, 91);
       y += 12;
@@ -1510,7 +1508,6 @@
 
       // \u2500\u2500 CONDUTOR PRINCIPAL \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       secao('CONDUTOR PRINCIPAL');
-      checkYSpace(11);
       caixaCampo('Nome Completo', g('condutorNome'), 14, y, 182);
       y += 12;
       checkYSpace(11);
@@ -1528,7 +1525,6 @@
 
       // \u2500\u2500 DADOS DO VE\u00cdCULO \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       secao('DADOS DO VE\u00cdCULO');
-      checkYSpace(16);
       doc.setDrawColor(5, 22, 37);
       doc.setLineWidth(0.3);
       doc.roundedRect(14, y, 182, 12, 2, 2, 'S');
@@ -1606,7 +1602,6 @@
 
       // \u2500\u2500 VALORES DA PROPOSTA \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       secao('VALORES DA PROPOSTA');
-      checkYSpace(26);
       doc.setFillColor(5, 22, 37);
       doc.roundedRect(14, y, 88, 22, 2, 2, 'F');
       doc.setTextColor(150, 180, 220);
