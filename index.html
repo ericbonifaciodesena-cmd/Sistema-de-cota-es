@@ -1430,13 +1430,6 @@
       }
 
       function drawCobTable(lista) {
-        checkYSpace(10);
-        doc.setFillColor(5, 22, 37);
-        doc.rect(margin, y, contentW, 7, 'F');
-        doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
-        doc.text('Cobertura', margin + 3, y + 4.5);
-        doc.text('Valor / Import\u00e2ncia Segurada', margin + contentW - 3, y + 4.5, { align: 'right' });
-        y += 7;
         lista.forEach((c) => {
           checkYSpace(6);
           doc.setDrawColor(220, 225, 230);
@@ -1642,12 +1635,13 @@
 
       let yPag = y + 7;
       pgtos.forEach(([label, valor]) => {
+        doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(107, 114, 128);
-        doc.text(label, 22, yPag);
+        doc.text(label + ':', 103, yPag, { align: 'right' });
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(5, 22, 37);
-        doc.text(valor, 120, yPag);
+        doc.text(valor, 107, yPag);
         yPag += 6;
       });
 
