@@ -1255,7 +1255,7 @@
       }
 
       // Assistência 24h
-      const assistenciaM = text.match(/Assistência 24 horas\s+Completa/i);
+      const assistenciaM = text.match(/Assistência 24 horas\s+(Completa|VIP)/i);
       if (assistenciaM) {
         document.getElementById('chkAssistencia').checked = true;
         const kmM = text.match(/Km adicional de reboque\s+(\d+)\s*km/i);
