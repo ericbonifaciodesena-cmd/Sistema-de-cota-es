@@ -1381,8 +1381,7 @@
       // ── IDENTIFICAÇÃO ─────────────────────────────────────────────
       fill('seguradora', 'Yelum');
 
-      // Cotação Nº: header e valor aparecem na mesma linha no texto plano
-      // "Cotação Nº Vigência Filial 1275689547 17/04/2026..."
+      // "Cotação Nº Vigência Filial 1275689547 17/04/..."
       const cotM = text.match(/Cota[çc][aã]o\s+N[ºo°]\s+(?:[^\d]+)(\d{7,12})/i);
       if (cotM) fill('numeroCotacao', cotM[1]);
 
@@ -1397,57 +1396,62 @@
         `${val7.getFullYear()}-${String(val7.getMonth()+1).padStart(2,'0')}-${String(val7.getDate()).padStart(2,'0')}`);
 
       // ── SEGURADO ──────────────────────────────────────────────────
-      // CPF primeiro (âncora confiável)
+      // CPF como âncora → nome vem imediatamente antes no texto plano
       const cpfM = text.match(/(\d{3}\.\d{3}\.\d{3}[-–]\d{2})/);
       if (cpfM) {
         fill('cpf', cpfM[1]);
-        fill('condutorCpf', cpfM[1]);
-        // Nome: grupo de maiúsculas imediatamente antes do CPF
         const before = text.substring(0, text.indexOf(cpfM[1]));
         const nomeM = before.match(/([A-ZÁÉÍÓÚÀÂÊÔÃÕ][A-ZÁÉÍÓÚÀÂÊÔÃÕ\s]{5,50})\s*$/);
-        if (nomeM) {
-          const nome = nomeM[1].trim();
-          fill('nome', nome);
-          fill('condutorNome', nome);
-        }
+        if (nomeM) fill('nome', nomeM[1].trim());
       }
 
-      // Data nascimento: data que precede "Masculino" ou "Feminino"
-      const sexoM = text.match(/(\d{2}\/\d{2}\/\d{4})\s+(Masculino|Feminino)/i);
-      if (sexoM) {
-        fill('dataNasc', toISO(sexoM[1]));
-        fill('condutorDataNasc', toISO(sexoM[1]));
+      // Data nascimento segurado: "DD/MM/AAAA IDADE Masculino/Feminino"
+      const sexoM = text.match(/(\d{2}\/\d{2}\/\d{4})\s+\d{1,3}\s+(Masculino|Feminino)/i);
+      if (sexoM) fill('dataNasc', toISO(sexoM[1]));
+
+      // ── CONDUTOR PRINCIPAL (DADOS DO PERFIL) ─────────────────────
+      // "Nome do Principal Condutor Estado Civil Data de Nascimento Idade Sexo
+      //  SUZANA MARTINS DE OLIVEIRA Casado/União Estável 16/04/1972 54 Feminino"
+      const perfil = text.match(/Sexo\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕ][A-ZÁÉÍÓÚÀÂÊÔÃÕ\s]+?)\s+(Casad\S*(?:\/?\S*)?|Solteir\S*|Divorc\S*|Vi[uú]v\S*|Separ\S*)\s+(\d{2}\/\d{2}\/\d{4})\s+\d{1,3}\s+(Masculino|Feminino)/i);
+      if (perfil) {
+        fill('condutorNome', perfil[1].trim());
+        fill('condutorEstadoCivil', perfil[2].replace(/\/.*/, '').trim()); // "Casado"
+        fill('condutorDataNasc', toISO(perfil[3]));
       }
 
-      // ── VEÍCULO ───────────────────────────────────────────────────
-      // Âncora: código FIPE "006390-0 MODELO 2017/2017 CHASSI PLACA"
-      const fipeM = text.match(/(\d{6}-\d)\s+(.+?)\s+(\d{4})\/(\d{4})/);
-      if (fipeM) {
-        fill('modelo', fipeM[2].trim());
-        fill('ano', fipeM[4]);
-      }
-
-      // Placa: Mercosul ou antigo
-      const placaM = text.match(/\b([A-Z]{3}[0-9][A-Z][0-9]{2})\b/)
-                  || text.match(/\b([A-Z]{3}[0-9]{4})\b/);
-      if (placaM) fill('placa', placaM[1].toUpperCase());
-
-      // CEP de pernoite
-      const cepM = text.match(/CEP de Pernoite\s+(\d{5}[-–]?\d{0,3})/i);
-      if (cepM) fill('cep', cepM[1]);
+      // CPF condutor (segundo CPF ou mesmo CPF)
+      const cpfCondM = text.match(/CPF Condutor[^\d]*(\d{3}\.\d{3}\.\d{3}[-–]\d{2})/i)
+                    || cpfM;
+      if (cpfCondM) fill('condutorCpf', cpfCondM[1] || cpfCondM[0]);
 
       // Uso do veículo
       if (/PARTICULAR/i.test(text)) fill('uso', 'Particular');
 
+      // ── VEÍCULO ───────────────────────────────────────────────────
+      // Âncora: código FIPE "006390-0 MODELO ANO/ANO"
+      const fipeM = text.match(/(\d{6}-\d)\s+(.+?)\s+(\d{4})\/(\d{4})/);
+      if (fipeM) { fill('modelo', fipeM[2].trim()); fill('ano', fipeM[4]); }
+
+      const placaM = text.match(/\b([A-Z]{3}[0-9][A-Z][0-9]{2})\b/)
+                  || text.match(/\b([A-Z]{3}[0-9]{4})\b/);
+      if (placaM) fill('placa', placaM[1].toUpperCase());
+
+      // CEP de pernoite: aparece na linha de valores depois de vários números curtos
+      // "Capacidade Categoria Reg.Tarif. CEP de Pernoite ... 5 10-VEÍ... 305 88190 ..."
+      const cepM = text.match(/(?:Pernoite|CEP)[^\d]*(?:\d{1,3}\s+)?(?:\d{1,3}\s+)?(\d{5})(?:-\d{3})?\b/i);
+      if (cepM) fill('cep', cepM[1]);
+
       // ── COBERTURAS ESSENCIAIS ─────────────────────────────────────
-      // Colisão + franquia LAP (última coluna da linha COMPREENSIVA)
-      const compreM = text.match(/COMPREENSIVA\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})/i);
+      // BASICA 01-COMPREENSIVA: LMI é "VMR FIPE x 100%" (texto), depois Prêmio e Franquia
+      const compreM = text.match(/COMPREENSIVA\s+VMR FIPE x 100%\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})/i)
+                   || text.match(/COMPREENSIVA[^\d]*([\d.]+,\d{2})\s+([\d.]+,\d{2})/i);
       if (compreM) {
         check('chkColisao', true);
-        fill('franquiaValor', 'R$ ' + compreM[3]);
+        fill('valColisao', 'VMR FIPE x 100%');
+        fill('franquiaValor', 'R$ ' + (compreM[2] || compreM[1]));
       }
 
-      // RC Materiais — LMI é a primeira coluna após o nome da cobertura
+      // RC Materiais
       const rcMatM = text.match(/DANOS MATERIAIS\s+([\d.]+,\d{2})/i);
       if (rcMatM) {
         check('chkDanosMat', true);
@@ -1483,7 +1487,7 @@
         if (el && !el.value) el.value = 'APP Morte/Invalidez';
       }
 
-      // Carta Verde Materiais
+      // Carta Verde
       const cvMatM = text.match(/CARTA VERDE\s*[-–]\s*DANOS MATERIAIS\s+US\$\s*([\d.]+,\d{2})/i);
       if (cvMatM) {
         check('chkCartaVerdeMat', true);
@@ -1491,8 +1495,6 @@
         const el = document.getElementById('lblCartaVerdeMat');
         if (el && !el.value) el.value = 'Carta Verde - Materiais';
       }
-
-      // Carta Verde Corporais
       const cvCorpM = text.match(/CARTA VERDE\s*[-–]\s*MORTE[^\d]*US\$\s*([\d.]+,\d{2})/i);
       if (cvCorpM) {
         check('chkCartaVerdeCorp', true);
@@ -1516,22 +1518,20 @@
         fill('lblAssistencia', 'Assistência Básico (Pane 300km / Reboque 300km)');
       }
 
-      if (/VIDROS[\s-]+VEI[\s_-]+NAC[\s_-]+INTERMEDIARIO/i.test(text)) {
+      // Vidros: mesmo padrão da Tokio
+      if (/VIDROS[\s-]+VEI[\s_-]+NAC/i.test(text)) {
         check('chkVidros', true);
-        fill('lblVidros', 'Vidros Completos');
+        fill('lblVidros', 'Vidros, faróis, lanternas e retrovisores');
       }
 
       // ── PRÊMIO E PAGAMENTO ────────────────────────────────────────
-      // "À vista" é o valor de referência
       const avistaM = text.match(/À vista\s+([\d.]+,\d{2})/i);
       if (avistaM) {
         fill('premioTotal', 'R$ ' + avistaM[1]);
         fill('aVista',      'R$ ' + avistaM[1]);
       }
 
-      // Yelum usa "1 + N val1 val2 val3 val4" (Carnê | Débito | Cartão | PIX)
-      // Linhas com 4 colunas: todos os métodos ainda disponíveis
-      // Linhas com menos colunas: apenas Cartão continua (vai até 12x)
+      // Yelum usa "1 + N val1 val2 val3 val4" (Carnê | Débito C/C | Cartão | PIX)
       const pgtoRe = /1 \+ (\d+)\s+([\d.,]+(?:\s+[\d.,]+)*)/g;
       let pm, lastFull = null, lastCartaoSomente = null;
       while ((pm = pgtoRe.exec(text)) !== null) {
@@ -1558,7 +1558,6 @@
         fill('cartaoValor',    'R$ ' + lastCartaoSomente.cartao);
       }
 
-      // ── Exibe formulário preenchido ───────────────────────────────
       toggleScreen('form');
     }
 
