@@ -1503,14 +1503,14 @@
       }
 
       // Carta Verde
-      const cvMatM = text.match(/CARTA VERDE\s*[-–]\s*DANOS MATERIAIS\s+US\$\s*([\d.]+,\d{2})/i);
+      const cvMatM = text.match(/CARTA VERDE\s*[-–]\s*DANOS MATERIAIS\s+US\$\s*([\d.,]+)/i);
       if (cvMatM) {
         check('chkCartaVerdeMat', true);
         fill('valCartaVerdeMat', 'US$ ' + cvMatM[1]);
         const el = document.getElementById('lblCartaVerdeMat');
         if (el && !el.value) el.value = 'Carta Verde - Materiais';
       }
-      const cvCorpM = text.match(/CARTA VERDE\s*[-–]\s*MORTE[^\d]*US\$\s*([\d.]+,\d{2})/i);
+      const cvCorpM = text.match(/CARTA VERDE\s*[-–]\s*MORTE[^\d]*US\$\s*([\d.,]+)/i);
       if (cvCorpM) {
         check('chkCartaVerdeCorp', true);
         fill('valCartaVerdeCorp', 'US$ ' + cvCorpM[1]);
