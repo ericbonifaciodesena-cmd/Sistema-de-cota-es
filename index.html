@@ -1539,6 +1539,24 @@
         fill('lblVidros', 'Vidros, faróis, lanternas e retrovisores');
       }
 
+      // Carro reserva
+      if (/CARRO\s+RESERVA/i.test(text)) {
+        check('chkCarroReserva', true);
+        fill('lblCarroReserva', 'Carro Reserva');
+      }
+
+      // Pequenos reparos
+      if (/PROTECAO\s+PEQUENOS\s+REPAROS/i.test(text)) {
+        check('chkPequenosReparos', true);
+        fill('lblPequenosReparos', 'Pequenos Reparos');
+      }
+
+      // Proteção de rodas, pneus e suspensão
+      if (/PROTECAO\s+DE\s+RODA\s+E\s+PNEU/i.test(text)) {
+        check('chkRodas', true);
+        fill('lblRodas', 'Proteção de Rodas, Pneus e Suspensão');
+      }
+
       // Franquias de vidros: tudo após "VIDROS INTERMEDIARIO (Rede Referenciada) -"
       const vidrosFqM = text.match(/VIDROS[^\n]*\(Rede Referenciada\)\s*-\s*([\s\S]+?)(?=\s*-\s*Cobertura\s+LED|\s*ASSISTÊN|\s*ATENÇÃO|DADOS DO PERFIL|Yelum Seguros)/i);
       if (vidrosFqM) {
