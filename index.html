@@ -1613,7 +1613,9 @@
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(13); doc.setFont('helvetica', 'bold');
       doc.text(g('franquiaValor') || '\u2014', 152, y + 16, { align: 'center' });
-      y += 6;
+      y += 28;
+
+      secao('FORMAS DE PAGAMENTO');
 
       const pgtos = [
         ['\u00c0 Vista', g('aVista')],
@@ -1635,10 +1637,10 @@
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(107, 114, 128);
-        doc.text(label + ':', 101, yPag, { align: 'right' });
+        doc.text(label + ':', 90, yPag, { align: 'right' });
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(5, 22, 37);
-        doc.text(valor, 109, yPag);
+        doc.text(valor, 95, yPag);
         yPag += 6;
       });
 
