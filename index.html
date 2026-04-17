@@ -1410,13 +1410,23 @@
       if (sexoM) fill('dataNasc', toISO(sexoM[1]));
 
       // ── CONDUTOR PRINCIPAL (DADOS DO PERFIL) ─────────────────────
-      // "Nome do Principal Condutor Estado Civil Data de Nascimento Idade Sexo
-      //  SUZANA MARTINS DE OLIVEIRA Casado/União Estável 16/04/1972 54 Feminino"
-      const perfil = text.match(/Sexo\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕ][A-ZÁÉÍÓÚÀÂÊÔÃÕ\s]+?)\s+(Casad\S*(?:\/?\S*)?|Solteir\S*|Divorc\S*|Vi[uú]v\S*|Separ\S*)\s+(\d{2}\/\d{2}\/\d{4})\s+\d{1,3}\s+(Masculino|Feminino)/i);
-      if (perfil) {
-        fill('condutorNome', perfil[1].trim());
-        fill('condutorEstadoCivil', perfil[2].replace(/\/.*/, '').trim()); // "Casado"
-        fill('condutorDataNasc', toISO(perfil[3]));
+      // Texto plano: "Sexo NOME Casado/União Estável DD/MM/AAAA IDADE Masculino CPF Condutor"
+      const perfilM = text.match(/Sexo\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕ][\s\S]+?)(?=CPF Condutor)/i);
+      if (perfilM) {
+        const bloco = perfilM[1].trim();
+        const condNomeM = bloco.match(/^([A-ZÁÉÍÓÚÀÂÊÔÃÕ][A-ZÁÉÍÓÚÀÂÊÔÃÕ\s]+?)\s+(?=Casad|Solteir|Divorc|Vi[uú]v|Separ)/i);
+        if (condNomeM) fill('condutorNome', condNomeM[1].trim());
+        const condEcM = bloco.match(/(Casad[^\d]{0,25}?|Solteir[^\d]{0,10}?|Divorc[^\d]{0,15}?|Vi[uú]v[^\d]{0,10}?|Separ[^\d]{0,15}?)\s+\d{2}\//i);
+        if (condEcM) {
+          const ec = condEcM[1].replace(/\/[\s\S]*/, '').trim();
+          fill('condutorEstadoCivil', ec);
+          fill('estadoCivil', ec);
+        }
+        const condDateM = bloco.match(/(\d{2}\/\d{2}\/\d{4})/);
+        if (condDateM) fill('condutorDataNasc', toISO(condDateM[1]));
+        const cpfCondM = text.match(/CPF Condutor[^\d]*(\d{3}\.\d{3}\.\d{3}[-–]\d{2})/i);
+        if (cpfCondM) fill('condutorCpf', cpfCondM[1]);
+        else if (cpfM) fill('condutorCpf', cpfM[1]);
       }
 
       // CPF condutor (segundo CPF ou mesmo CPF)
@@ -1531,31 +1541,25 @@
         fill('aVista',      'R$ ' + avistaM[1]);
       }
 
-      // Yelum usa "1 + N val1 val2 val3 val4" (Carnê | Débito C/C | Cartão | PIX)
+      // Yelum: colunas "1+N val val val val" → Carnê(0) | Débito(1) | Cartão(2) | PIX(3)
+      // 12x boleto e cartão (linha 1+11), 6x débito (linha 1+5)
+      const pgtoRows = {};
       const pgtoRe = /1 \+ (\d+)\s+([\d.,]+(?:\s+[\d.,]+)*)/g;
-      let pm, lastFull = null, lastCartaoSomente = null;
+      let pm;
       while ((pm = pgtoRe.exec(text)) !== null) {
-        const vals = pm[2].trim().split(/\s+/);
-        const n = parseInt(pm[1]) + 1;
-        if (vals.length >= 4) {
-          lastFull = { n, carne: vals[0], debito: vals[1], cartao: vals[2] };
-        } else if (vals.length === 1 && (!lastFull || n > lastFull.n)) {
-          lastCartaoSomente = { n, cartao: vals[0] };
-        }
+        pgtoRows[parseInt(pm[1]) + 1] = pm[2].trim().split(/\s+/);
       }
-      if (lastFull) {
-        fill('boletoParcelas', String(lastFull.n));
-        fill('boletoValor',    'R$ ' + lastFull.carne);
-        fill('debitoParcelas', String(lastFull.n));
-        fill('debitoValor',    'R$ ' + lastFull.debito);
-        if (!lastCartaoSomente) {
-          fill('cartaoParcelas', String(lastFull.n));
-          fill('cartaoValor',    'R$ ' + lastFull.cartao);
-        }
+      const r12 = pgtoRows[12];
+      if (r12) {
+        fill('boletoParcelas', '12');
+        fill('boletoValor', 'R$ ' + r12[0]);
+        fill('cartaoParcelas', '12');
+        fill('cartaoValor', 'R$ ' + (r12[2] || r12[r12.length - 1]));
       }
-      if (lastCartaoSomente) {
-        fill('cartaoParcelas', String(lastCartaoSomente.n));
-        fill('cartaoValor',    'R$ ' + lastCartaoSomente.cartao);
+      const r6 = pgtoRows[6];
+      if (r6) {
+        fill('debitoParcelas', '6');
+        fill('debitoValor', 'R$ ' + (r6[1] || r6[0]));
       }
 
       toggleScreen('form');
