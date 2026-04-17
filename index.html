@@ -1406,10 +1406,12 @@
         checkYSpace(12);
         doc.setFillColor(5, 22, 37);
         doc.rect(14, y, 182, 8, 'F');
+        doc.setFillColor(5, 22, 37);
+        doc.rect(14, y, 6, 8, 'F');
         doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(255, 255, 255);
-        doc.text(titulo.toUpperCase(), 18, y + 5.5);
+        doc.text(titulo.toUpperCase(), 22, y + 5.5);
         y += 11;
       }
 
