@@ -1408,23 +1408,47 @@
       if (nascSegM) fill('dataNasc', toISO(nascSegM[1]));
 
       // ── CONDUTOR PRINCIPAL (DADOS DO PERFIL) ─────────────────────
-      // Flat: "...Sexo NOME_CAPS Estado Civil DD/MM/AAAA IDADE Masc/Fem CPF Condutor..."
-      const perfilM = text.match(/Sexo\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][\s\S]+?)(?=CPF Condutor)/i);
-      if (perfilM) {
-        const bloco = perfilM[1].trim();
-        // Nome: sem flag /i para não capturar letras minúsculas do estado civil
-        const condNomeM = bloco.match(/^([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ\s]+?)\s+(?=Casad|Solteir|Divorc|Vi[uú]v|Separ)/);
-        if (condNomeM) fill('condutorNome', condNomeM[1].trim());
-        const condEcM = bloco.match(/(Casad[^\d]{0,30}?|Solteir[^\d]{0,10}?|Divorc[^\d]{0,15}?|Vi[uú]v[^\d]{0,10}?|Separ[^\d]{0,15}?)\s+\d{2}\//i);
-        if (condEcM) {
-          const ec = condEcM[1].replace(/\s*\/[\s\S]*/, '').trim();
-          fill('condutorEstadoCivil', ec); fill('estadoCivil', ec);
-        }
-        const condDateM = bloco.match(/(\d{2}\/\d{2}\/\d{4})/);
-        if (condDateM) fill('condutorDataNasc', toISO(condDateM[1]));
-        const cpfCondM = text.match(/CPF Condutor[^\d]*(\d{3}\.\d{3}\.\d{3}[-–]\d{2})/i);
-        fill('condutorCpf', cpfCondM ? cpfCondM[1] : (cpfM ? cpfM[1] : ''));
+      // pdf.js pode extrair coluna×coluna: "Nome do Principal Condutor NOME Estado Civil EC..."
+      // ou linha×linha: "...Sexo NOME EC DATA IDADE GENDER CPF Condutor..."
+      // Estratégia A: col×col (âncoras de cabeçalho)
+      const condNomeA = text.match(/Nome do Principal Condutor\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ\s]{3,50}?)\s+Estado Civil/i);
+      if (condNomeA) fill('condutorNome', condNomeA[1].trim());
+
+      const condEcA = text.match(/Estado Civil\s+([A-Za-záéíóúàâêôãõüçÁÉÍÓÚÀÂÊÔÃÕÜÇ\/\s]{3,40}?)\s+(?:Data de Nascimento|\d{2}\/\d{2}\/\d{4})/i);
+      if (condEcA) {
+        const ec = condEcA[1].trim();
+        fill('condutorEstadoCivil', ec); fill('estadoCivil', ec);
       }
+      const condDateA = text.match(/Data de Nascimento\s+(\d{2}\/\d{2}\/\d{4})/i);
+      if (condDateA) {
+        fill('condutorDataNasc', toISO(condDateA[1]));
+        if (!document.getElementById('dataNasc').value) fill('dataNasc', toISO(condDateA[1]));
+      }
+
+      // Estratégia B: linha×linha — "Sexo NOME_CAPS EC DATA IDADE GENDER CPF Condutor"
+      if (!document.getElementById('condutorNome').value) {
+        const perfilM = text.match(/Sexo\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][\s\S]+?)(?=CPF Condutor)/i);
+        if (perfilM) {
+          const bloco = perfilM[1].trim();
+          const condNomeM = bloco.match(/^([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ\s]+?)\s+(?=Casad|Solteir|Divorc|Vi[uú]v|Separ)/);
+          if (condNomeM) fill('condutorNome', condNomeM[1].trim());
+          if (!document.getElementById('condutorEstadoCivil').value) {
+            const condEcM = bloco.match(/(Casad[^\d]{0,30}?|Solteir[^\d]{0,10}?|Divorc[^\d]{0,15}?|Vi[uú]v[^\d]{0,10}?|Separ[^\d]{0,15}?)\s+\d{2}\//i);
+            if (condEcM) {
+              const ec = condEcM[1].replace(/\s*\/[\s\S]*/, '').trim();
+              fill('condutorEstadoCivil', ec); fill('estadoCivil', ec);
+            }
+          }
+          if (!document.getElementById('condutorDataNasc').value) {
+            const condDateM = bloco.match(/(\d{2}\/\d{2}\/\d{4})/);
+            if (condDateM) fill('condutorDataNasc', toISO(condDateM[1]));
+          }
+        }
+      }
+
+      // CPF condutor
+      const cpfCondM = text.match(/CPF Condutor[^\d]*(\d{3}\.\d{3}\.\d{3}[-–]\d{2})/i);
+      fill('condutorCpf', cpfCondM ? cpfCondM[1] : (cpfM ? cpfM[1] : ''));
 
       // ── JOVEM CONDUTOR ────────────────────────────────────────────
       const jovemM = text.match(/residentes habilitados[^?]*\?\s*(Sim|N[aã]o(?:\s+se\s+aplica)?)/i);
@@ -1442,9 +1466,8 @@
                   || text.match(/\b([A-Z]{3}[0-9]{4})\b/);
       if (placaM) fill('placa', placaM[1].toUpperCase());
 
-      // CEP de pernoite: label "CEP de Pernoite" seguido do número
-      const cepM = text.match(/CEP\s+de\s+Pernoite\s+(\d{5})/i)
-                || text.match(/Pernoite[^\d]*(\d{5})(?!\d)/i);
+      // CEP de pernoite: busca o primeiro \d{5} dentro de 200 chars após o rótulo
+      const cepM = text.match(/CEP\s+de\s+Pernoite[\s\S]{0,200}?(\d{5})(?!\d)/i);
       if (cepM) fill('cep', cepM[1]);
 
       // ── COBERTURAS ESSENCIAIS ─────────────────────────────────────
@@ -1453,7 +1476,7 @@
                    || text.match(/COMPREENSIVA[^\d]*([\d.]+,\d{2})\s+([\d.]+,\d{2})/i);
       if (compreM) {
         check('chkColisao', true);
-        fill('valColisao', 'VMR FIPE x 100%');
+        fill('valColisao', '100%');
         fill('franquiaValor', 'R$ ' + (compreM[2] || compreM[1]));
       }
 
@@ -1513,15 +1536,15 @@
       if (/ASSISTENCIA\s*[-–]\s*SUPERIOR/i.test(text)) {
         check('chkAssistencia', true);
         fill('assistenciaKm', 'Ilimitado');
-        fill('lblAssistencia', 'Assistência 24h — Superior (Pane Ilimitada)');
+        fill('lblAssistencia', 'Assistência 24h — Superior (Pane e Colisão Ilimitados)');
       } else if (/ASSISTENCIA\s*[-–]\s*INTERMEDIARIA/i.test(text)) {
         check('chkAssistencia', true);
         fill('assistenciaKm', '1000');
-        fill('lblAssistencia', 'Assistência 24h — Intermediária (Pane 1.000km)');
+        fill('lblAssistencia', 'Assistência 24h — Intermediária (Pane 500km | Colisão 1.000km)');
       } else if (/ASSISTENCIA\s*[-–]\s*BASICO/i.test(text)) {
         check('chkAssistencia', true);
         fill('assistenciaKm', '300');
-        fill('lblAssistencia', 'Assistência 24h — Básico (Pane 300km)');
+        fill('lblAssistencia', 'Assistência 24h — Básico (Pane 300km | Colisão 300km)');
       }
 
       // Vidros: mesmo padrão da Tokio
@@ -1530,19 +1553,12 @@
         fill('lblVidros', 'Vidros, faróis, lanternas e retrovisores');
       }
 
-      // Franquias de vidros em INFORMAÇÕES COMPLEMENTARES
-      const icM = text.match(/INFORMA[CÇ][ÕO]ES COMPLEMENTARES([\s\S]*?)(?=DADOS DO PERFIL|Yelum Seguros S|$)/i);
-      if (icM) {
-        const ic = icM[1];
-        const fq = [];
-        const pv = (lbl, re) => { const m = ic.match(re); if (m) fq.push(`${lbl}: R$ ${m[1]}`); };
-        pv('Para-brisa',  /Para-brisa\s+R\$\s*([\d.]+,\d{2})/i);
-        pv('Vigia',       /Vigia\s+R\$\s*([\d.]+,\d{2})/i);
-        pv('Laterais',    /Laterais?\s+R\$\s*([\d.]+,\d{2})/i);
-        pv('Retrovisores',/Retrovisores?\s+R\$\s*([\d.]+,\d{2})/i);
-        pv('Faróis',      /Far[oó]is?\s+R\$\s*([\d.]+,\d{2})/i);
-        pv('Lanternas',   /Lanternas?\s+R\$\s*([\d.]+,\d{2})/i);
-        if (fq.length) fill('franquias', fq.join(' | '));
+      // Franquias de vidros: tudo após "VIDROS INTERMEDIARIO (Rede Referenciada) -"
+      const vidrosFqM = text.match(/VIDROS[^\n]*\(Rede Referenciada\)\s*-\s*([\s\S]+?)(?=\s*-\s*Cobertura\s+LED|\s*ASSISTÊN|\s*ATENÇÃO|DADOS DO PERFIL|Yelum Seguros)/i);
+      if (vidrosFqM) {
+        const raw = vidrosFqM[1].replace(/^Franquia\s*/i, '').trim();
+        const itens = raw.split(/\s*\/\s*/).map(s => s.trim()).filter(Boolean);
+        fill('franquias', itens.join(' | '));
       }
 
       // ── PRÊMIO E PAGAMENTO ────────────────────────────────────────
