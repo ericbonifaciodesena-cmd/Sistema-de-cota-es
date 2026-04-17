@@ -1413,9 +1413,16 @@
       const condNomeM = text.match(/Nome do Principal Condutor[\s\S]{0,200}?([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ]{2,}(?:\s+[A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ]{2,})+)/);
       if (condNomeM) fill('condutorNome', condNomeM[1].trim());
 
-      // Estado civil: entre "Estado Civil" e próxima data ou "Data de Nascimento"
-      const condEcM = text.match(/Estado Civil\s+([A-Za-záéíóúàâêôãõüçÁÉÍÓÚÀÂÊÔÃÕÜÇ\/\s]{3,40}?)\s+(?:Data de Nascimento|\d{2}\/)/i);
-      if (condEcM) { const ec = condEcM[1].trim(); fill('condutorEstadoCivil', ec); fill('estadoCivil', ec); }
+      // Estado civil: bloco entre "Sexo" e "CPF Condutor" contém EC após o nome
+      const perfilBloco = text.match(/Sexo\s+([\s\S]+?)(?=CPF Condutor)/i);
+      if (perfilBloco) {
+        const bloco = perfilBloco[1].trim();
+        const condEcM = bloco.match(/(Casad[^\d]{0,30}?|Solteir[^\d]{0,10}?|Divorc[^\d]{0,15}?|Vi[uú]v[^\d]{0,10}?|Separ[^\d]{0,15}?)\s+\d{2}\//i);
+        if (condEcM) {
+          const ec = condEcM[1].replace(/\s*\/[\s\S]*/, '').trim();
+          fill('condutorEstadoCivil', ec); fill('estadoCivil', ec);
+        }
+      }
 
       // Data nascimento: col×col "Data de Nascimento DD/MM/AAAA" ou row×row "DD/MM/AAAA IDADE Gender"
       const condDateM = text.match(/Data de Nascimento\s+(\d{2}\/\d{2}\/\d{4})/i)
