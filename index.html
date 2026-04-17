@@ -1258,10 +1258,17 @@
       const assistenciaM = text.match(/Assistência 24 horas\s+(Completa|VIP)/i);
       if (assistenciaM) {
         document.getElementById('chkAssistencia').checked = true;
-        const kmM = text.match(/Km adicional de reboque\s+(\d+)\s*km/i);
-        const kmTotal = 200 + (kmM ? parseInt(kmM[1]) : 0);
+        const kmAdicM = text.match(/Km adicional de reboque\s+(ilimitado|\d+\s*km)/i);
+        const kmAdicVal = kmAdicM ? kmAdicM[1].trim().toLowerCase() : '';
+        let kmTotal, kmLabel;
+        if (kmAdicVal === 'ilimitado') {
+          kmTotal = 'Ilimitado'; kmLabel = 'Assistência 24h — Ilimitado';
+        } else {
+          const extra = kmAdicVal ? parseInt(kmAdicVal) : 0;
+          kmTotal = 200 + extra; kmLabel = `Assistência 24h — ${kmTotal}km`;
+        }
         document.getElementById('assistenciaKm').value = kmTotal;
-        document.getElementById('lblAssistencia').value = `Assistência 24h — ${kmTotal}km`;
+        document.getElementById('lblAssistencia').value = kmLabel;
       }
 
       // ── FRANQUIAS DE SERVIÇOS ──────────────────────────────────────
