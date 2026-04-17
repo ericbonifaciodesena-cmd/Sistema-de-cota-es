@@ -1568,7 +1568,7 @@
         { chk: 'chkParachoque',     lbl: 'lblParachoque',     val: null },
         { chk: 'chkRodas',          lbl: 'lblRodas',          val: null },
       ].filter(c => chk(c.chk));
-      if (cobAdc.length) { secao('COBERTURAS ADICIONAIS'); drawCobTable(cobAdc); }
+      if (cobAdc.length) { doc.addPage(); y = 16; secao('COBERTURAS ADICIONAIS'); drawCobTable(cobAdc); }
 
       // \u2500\u2500 FRANQUIAS ADICIONAIS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       const franqItens = (g('franquias') || '').split('|').map(s => s.trim()).filter(Boolean);
@@ -1638,10 +1638,10 @@
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(107, 114, 128);
-        doc.text(label + ':', 103, yPag, { align: 'right' });
+        doc.text(label + ':', 80, yPag, { align: 'right' });
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(5, 22, 37);
-        doc.text(valor, 107, yPag);
+        doc.text(valor, 84, yPag);
         yPag += 6;
       });
 
