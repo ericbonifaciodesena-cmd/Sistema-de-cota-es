@@ -1408,42 +1408,21 @@
       if (nascSegM) fill('dataNasc', toISO(nascSegM[1]));
 
       // ── CONDUTOR PRINCIPAL (DADOS DO PERFIL) ─────────────────────
-      // pdf.js pode extrair coluna×coluna: "Nome do Principal Condutor NOME Estado Civil EC..."
-      // ou linha×linha: "...Sexo NOME EC DATA IDADE GENDER CPF Condutor..."
-      // Estratégia A: col×col (âncoras de cabeçalho)
-      const condNomeA = text.match(/Nome do Principal Condutor\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ\s]{3,50}?)\s+Estado Civil/i);
-      if (condNomeA) fill('condutorNome', condNomeA[1].trim());
+      // Nome: primeiro bloco de palavras em MAIÚSCULAS (≥2 letras cada) dentro de
+      // 200 chars após "Nome do Principal Condutor" — funciona em row×row e col×col
+      const condNomeM = text.match(/Nome do Principal Condutor[\s\S]{0,200}?([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ]{2,}(?:\s+[A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ]{2,})+)/);
+      if (condNomeM) fill('condutorNome', condNomeM[1].trim());
 
-      const condEcA = text.match(/Estado Civil\s+([A-Za-záéíóúàâêôãõüçÁÉÍÓÚÀÂÊÔÃÕÜÇ\/\s]{3,40}?)\s+(?:Data de Nascimento|\d{2}\/\d{2}\/\d{4})/i);
-      if (condEcA) {
-        const ec = condEcA[1].trim();
-        fill('condutorEstadoCivil', ec); fill('estadoCivil', ec);
-      }
-      const condDateA = text.match(/Data de Nascimento\s+(\d{2}\/\d{2}\/\d{4})/i);
-      if (condDateA) {
-        fill('condutorDataNasc', toISO(condDateA[1]));
-        if (!document.getElementById('dataNasc').value) fill('dataNasc', toISO(condDateA[1]));
-      }
+      // Estado civil: entre "Estado Civil" e próxima data ou "Data de Nascimento"
+      const condEcM = text.match(/Estado Civil\s+([A-Za-záéíóúàâêôãõüçÁÉÍÓÚÀÂÊÔÃÕÜÇ\/\s]{3,40}?)\s+(?:Data de Nascimento|\d{2}\/)/i);
+      if (condEcM) { const ec = condEcM[1].trim(); fill('condutorEstadoCivil', ec); fill('estadoCivil', ec); }
 
-      // Estratégia B: linha×linha — "Sexo NOME_CAPS EC DATA IDADE GENDER CPF Condutor"
-      if (!document.getElementById('condutorNome').value) {
-        const perfilM = text.match(/Sexo\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][\s\S]+?)(?=CPF Condutor)/i);
-        if (perfilM) {
-          const bloco = perfilM[1].trim();
-          const condNomeM = bloco.match(/^([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ\s]+?)\s+(?=Casad|Solteir|Divorc|Vi[uú]v|Separ)/);
-          if (condNomeM) fill('condutorNome', condNomeM[1].trim());
-          if (!document.getElementById('condutorEstadoCivil').value) {
-            const condEcM = bloco.match(/(Casad[^\d]{0,30}?|Solteir[^\d]{0,10}?|Divorc[^\d]{0,15}?|Vi[uú]v[^\d]{0,10}?|Separ[^\d]{0,15}?)\s+\d{2}\//i);
-            if (condEcM) {
-              const ec = condEcM[1].replace(/\s*\/[\s\S]*/, '').trim();
-              fill('condutorEstadoCivil', ec); fill('estadoCivil', ec);
-            }
-          }
-          if (!document.getElementById('condutorDataNasc').value) {
-            const condDateM = bloco.match(/(\d{2}\/\d{2}\/\d{4})/);
-            if (condDateM) fill('condutorDataNasc', toISO(condDateM[1]));
-          }
-        }
+      // Data nascimento: col×col "Data de Nascimento DD/MM/AAAA" ou row×row "DD/MM/AAAA IDADE Gender"
+      const condDateM = text.match(/Data de Nascimento\s+(\d{2}\/\d{2}\/\d{4})/i)
+                     || text.match(/(\d{2}\/\d{2}\/\d{4})\s+\d{1,3}\s+(?:Masculino|Feminino)/i);
+      if (condDateM) {
+        fill('condutorDataNasc', toISO(condDateM[1]));
+        if (!document.getElementById('dataNasc').value) fill('dataNasc', toISO(condDateM[1]));
       }
 
       // CPF condutor
