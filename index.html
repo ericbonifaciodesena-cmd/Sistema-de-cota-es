@@ -1368,7 +1368,13 @@
             canvas.height = img.height * scale;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL('image/jpeg', 0.95));
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const d = imgData.data;
+            for (let i = 0; i < d.length; i += 4) {
+              if (d[i] < 40 && d[i+1] < 40 && d[i+2] < 40) d[i+3] = 0;
+            }
+            ctx.putImageData(imgData, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
           };
           img.src = dataUrl;
         });
@@ -1450,7 +1456,7 @@
       doc.setFillColor(5, 22, 37);
       doc.rect(0, 0, 210, 38, 'F');
 
-      doc.addImage(logoBrancaResized, 'JPEG', 8, 5, 42, 12);
+      doc.addImage(logoBrancaResized, 'PNG', 8, 5, 42, 12);
 
       doc.setTextColor(150, 180, 210);
       doc.setFontSize(8); doc.setFont('helvetica', 'normal');
