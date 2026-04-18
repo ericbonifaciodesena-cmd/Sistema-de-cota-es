@@ -860,6 +860,16 @@
           </div>
         </div>
 
+        <!-- Carro reserva a terceiros -->
+        <div class="cobertura-item">
+          <input type="checkbox" class="cobertura-check" id="chkCarroReservaTerceiros" name="chkCarroReservaTerceiros">
+          <div>
+            <input type="text" class="cobertura-label-input" id="lblCarroReservaTerceiros" name="lblCarroReservaTerceiros"
+              value="Carro Reserva a Terceiros">
+            <div class="cobertura-hint">Marque para incluir no PDF</div>
+          </div>
+        </div>
+
         <!-- Pequenos reparos -->
         <div class="cobertura-item">
           <input type="checkbox" class="cobertura-check" id="chkPequenosReparos" name="chkPequenosReparos">
@@ -1539,10 +1549,28 @@
         fill('lblVidros', 'Vidros, faróis, lanternas e retrovisores');
       }
 
-      // Carro reserva
-      if (/CARRO\s+RESERVA/i.test(text)) {
+      // Carro Reserva a Terceiros (campo separado)
+      if (/CARRO\s+RESERVA\s+TERCEIROS/i.test(text)) {
+        check('chkCarroReservaTerceiros', true);
+        fill('lblCarroReservaTerceiros', 'Carro Reserva a Terceiros');
+      }
+
+      // Carro Reserva — variantes (exclui TERCEIROS já tratado acima)
+      const carroTipoM = text.match(/CARRO\s+RESERVA\s+(INDENIZA[CÇ][ÃA]O\s+INTEGRAL|OU\s+DESC\.?\s*FRQ)/i)
+                      || (/CARRO\s+RESERVA(?!\s+TERCEIROS)/i.test(text) ? ['', ''] : null);
+      if (carroTipoM !== null) {
         check('chkCarroReserva', true);
-        fill('lblCarroReserva', 'Carro Reserva');
+        const tipo = (carroTipoM[1] || '').trim().toUpperCase();
+        if (/INDENIZA/i.test(tipo)) {
+          fill('lblCarroReserva', 'Carro Reserva Indenização Integral');
+        } else if (/OU\s+DESC/i.test(tipo)) {
+          // Captura a descrição que vem logo após "CARRO RESERVA OU DESC.FRQ"
+          const descM = text.match(/CARRO\s+RESERVA\s+OU\s+DESC\.?\s*FRQ\s+([^\d\n]{5,120}?)(?=\s*[\d,]|\s*0,00|\n|$)/i);
+          const desc = descM ? ' — ' + descM[1].replace(/\s+/g, ' ').trim() : '';
+          fill('lblCarroReserva', 'Carro Reserva ou Desc.Frq' + desc);
+        } else {
+          fill('lblCarroReserva', 'Carro Reserva');
+        }
       }
 
       // Pequenos reparos
@@ -1819,11 +1847,12 @@
             return (km && !base.includes(km)) ? `${base} \u2014 ${km} km` : base;
           }
         },
-        { chk: 'chkVidros',         lbl: 'lblVidros',         val: null },
-        { chk: 'chkCarroReserva',   lbl: 'lblCarroReserva',   val: null },
-        { chk: 'chkPequenosReparos',lbl: 'lblPequenosReparos',val: null },
-        { chk: 'chkParachoque',     lbl: 'lblParachoque',     val: null },
-        { chk: 'chkRodas',          lbl: 'lblRodas',          val: null },
+        { chk: 'chkVidros',                  lbl: 'lblVidros',                  val: null },
+        { chk: 'chkCarroReserva',            lbl: 'lblCarroReserva',            val: null },
+        { chk: 'chkCarroReservaTerceiros',   lbl: 'lblCarroReservaTerceiros',   val: null },
+        { chk: 'chkPequenosReparos',         lbl: 'lblPequenosReparos',         val: null },
+        { chk: 'chkParachoque',              lbl: 'lblParachoque',              val: null },
+        { chk: 'chkRodas',                   lbl: 'lblRodas',                   val: null },
       ].filter(c => chk(c.chk));
       if (cobAdc.length) { doc.addPage(); y = 16; secao('COBERTURAS ADICIONAIS'); drawCobTable(cobAdc); }
 
