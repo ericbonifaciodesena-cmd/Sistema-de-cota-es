@@ -1549,28 +1549,32 @@
         fill('lblVidros', 'Vidros, faróis, lanternas e retrovisores');
       }
 
-      // Carro Reserva a Terceiros (campo separado)
+      // Carro Reserva a Terceiros (campo separado) — captura descrição após o nome
       if (/CARRO\s+RESERVA\s+TERCEIROS/i.test(text)) {
         check('chkCarroReservaTerceiros', true);
-        fill('lblCarroReservaTerceiros', 'Carro Reserva a Terceiros');
+        const m = text.match(/CARRO\s+RESERVA\s+TERCEIROS\s+([^\d\n]{3,120}?)(?=\s*[\d,]|\s*0,00|\n|$)/i);
+        const d = m ? ' — ' + m[1].replace(/\s+/g, ' ').trim() : '';
+        fill('lblCarroReservaTerceiros', 'Carro Reserva a Terceiros' + d);
       }
 
-      // Carro Reserva — variantes (exclui TERCEIROS já tratado acima)
-      const carroTipoM = text.match(/CARRO\s+RESERVA\s+(INDENIZA[CÇ][ÃA]O\s+INTEGRAL|OU\s+DESC\.?\s*FRQ)/i)
-                      || (/CARRO\s+RESERVA(?!\s+TERCEIROS)/i.test(text) ? ['', ''] : null);
-      if (carroTipoM !== null) {
+      // Carro Reserva Indenização Integral — captura descrição após o nome
+      if (/CARRO\s+RESERVA\s+INDENIZA/i.test(text)) {
         check('chkCarroReserva', true);
-        const tipo = (carroTipoM[1] || '').trim().toUpperCase();
-        if (/INDENIZA/i.test(tipo)) {
-          fill('lblCarroReserva', 'Carro Reserva Indenização Integral');
-        } else if (/OU\s+DESC/i.test(tipo)) {
-          // Captura a descrição que vem logo após "CARRO RESERVA OU DESC.FRQ"
-          const descM = text.match(/CARRO\s+RESERVA\s+OU\s+DESC\.?\s*FRQ\s+([^\d\n]{5,120}?)(?=\s*[\d,]|\s*0,00|\n|$)/i);
-          const desc = descM ? ' — ' + descM[1].replace(/\s+/g, ' ').trim() : '';
-          fill('lblCarroReserva', 'Carro Reserva ou Desc.Frq' + desc);
-        } else {
-          fill('lblCarroReserva', 'Carro Reserva');
-        }
+        const m = text.match(/CARRO\s+RESERVA\s+INDENIZA\S*(?:\s+INTEGRAL)?\s+([^\d\n]{3,120}?)(?=\s*[\d,]|\s*0,00|\n|$)/i);
+        const d = m ? ' — ' + m[1].replace(/\s+/g, ' ').trim() : '';
+        fill('lblCarroReserva', 'Carro Reserva Indenização Integral' + d);
+      }
+      // Carro Reserva ou Desc.Frq — captura descrição após o nome
+      else if (/CARRO\s+RESERVA\s+OU\s+DESC/i.test(text)) {
+        check('chkCarroReserva', true);
+        const m = text.match(/CARRO\s+RESERVA\s+OU\s+DESC\.?\s*FRQ\s+([^\d\n]{5,120}?)(?=\s*[\d,]|\s*0,00|\n|$)/i);
+        const d = m ? ' — ' + m[1].replace(/\s+/g, ' ').trim() : '';
+        fill('lblCarroReserva', 'Carro Reserva ou Desc.Frq' + d);
+      }
+      // Carro Reserva básico (qualquer outro, exceto TERCEIROS)
+      else if (/CARRO\s+RESERVA(?!\s+TERCEIROS)/i.test(text)) {
+        check('chkCarroReserva', true);
+        fill('lblCarroReserva', 'Carro Reserva');
       }
 
       // Pequenos reparos
