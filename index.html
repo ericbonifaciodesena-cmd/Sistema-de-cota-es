@@ -861,11 +861,31 @@
         </div>
 
         <!-- Carro reserva a terceiros -->
-        <div class="cobertura-item">
+        <div class="cobertura-item cobertura-item--has-extra">
           <input type="checkbox" class="cobertura-check" id="chkCarroReservaTerceiros" name="chkCarroReservaTerceiros">
           <div>
             <input type="text" class="cobertura-label-input" id="lblCarroReservaTerceiros" name="lblCarroReservaTerceiros"
               value="Carro Reserva a Terceiros">
+            <div class="cobertura-extra">
+              <span class="extra-label">Diárias:</span>
+              <input type="text" class="extra-input" id="carroReservaTerceirosDias" name="carroReservaTerceirosDias" placeholder="7">
+              <span class="extra-unit">dias</span>
+            </div>
+            <div class="cobertura-hint">Marque para incluir no PDF</div>
+          </div>
+        </div>
+
+        <!-- Carro reserva indenização integral -->
+        <div class="cobertura-item cobertura-item--has-extra">
+          <input type="checkbox" class="cobertura-check" id="chkCarroReservaIntegral" name="chkCarroReservaIntegral">
+          <div>
+            <input type="text" class="cobertura-label-input" id="lblCarroReservaIntegral" name="lblCarroReservaIntegral"
+              value="Carro Reserva Indenização Integral">
+            <div class="cobertura-extra">
+              <span class="extra-label">Diárias:</span>
+              <input type="text" class="extra-input" id="carroReservaIntegralDias" name="carroReservaIntegralDias" placeholder="7">
+              <span class="extra-unit">dias</span>
+            </div>
             <div class="cobertura-hint">Marque para incluir no PDF</div>
           </div>
         </div>
@@ -1549,32 +1569,42 @@
         fill('lblVidros', 'Vidros, faróis, lanternas e retrovisores');
       }
 
-      // Carro Reserva a Terceiros (campo separado) — captura descrição após o nome
+      // Carro Reserva a Terceiros
       if (/CARRO\s+RESERVA\s+TERCEIROS/i.test(text)) {
         check('chkCarroReservaTerceiros', true);
         const m = text.match(/CARRO\s+RESERVA\s+TERCEIROS\s+([^\d\n]{3,120}?)(?=\s*[\d,]|\s*0,00|\n|$)/i);
-        const d = m ? ' — ' + m[1].replace(/\s+/g, ' ').trim() : '';
-        fill('lblCarroReservaTerceiros', 'Carro Reserva a Terceiros' + d);
+        const desc = m ? m[1].replace(/\s+/g, ' ').trim() : '';
+        fill('lblCarroReservaTerceiros', 'Carro Reserva a Terceiros' + (desc ? ' — ' + desc : ''));
+        const diasM = desc.match(/(\d+)\s+DIAS/i);
+        if (diasM) fill('carroReservaTerceirosDias', diasM[1]);
       }
 
-      // Carro Reserva Indenização Integral — captura descrição após o nome
+      // Carro Reserva Indenização Integral
       if (/CARRO\s+RESERVA\s+INDENIZA/i.test(text)) {
-        check('chkCarroReserva', true);
+        check('chkCarroReservaIntegral', true);
         const m = text.match(/CARRO\s+RESERVA\s+INDENIZA\S*(?:\s+INTEGRAL)?\s+([^\d\n]{3,120}?)(?=\s*[\d,]|\s*0,00|\n|$)/i);
-        const d = m ? ' — ' + m[1].replace(/\s+/g, ' ').trim() : '';
-        fill('lblCarroReserva', 'Carro Reserva Indenização Integral' + d);
+        const desc = m ? m[1].replace(/\s+/g, ' ').trim() : '';
+        fill('lblCarroReservaIntegral', 'Carro Reserva Indenização Integral' + (desc ? ' — ' + desc : ''));
+        const diasM = desc.match(/(\d+)\s+DIAS/i);
+        if (diasM) fill('carroReservaIntegralDias', diasM[1]);
       }
-      // Carro Reserva ou Desc.Frq — captura descrição após o nome
+      // Carro Reserva ou Desc.Frq
       else if (/CARRO\s+RESERVA\s+OU\s+DESC/i.test(text)) {
         check('chkCarroReserva', true);
         const m = text.match(/CARRO\s+RESERVA\s+OU\s+DESC\.?\s*FRQ\s+([^\d\n]{5,120}?)(?=\s*[\d,]|\s*0,00|\n|$)/i);
-        const d = m ? ' — ' + m[1].replace(/\s+/g, ' ').trim() : '';
-        fill('lblCarroReserva', 'Carro Reserva ou Desc.Frq' + d);
+        const desc = m ? m[1].replace(/\s+/g, ' ').trim() : '';
+        fill('lblCarroReserva', 'Carro Reserva ou Desc.Frq' + (desc ? ' — ' + desc : ''));
+        const diasM = desc.match(/(\d+)\s+DIAS/i);
+        if (diasM) fill('carroReservaDias', diasM[1]);
       }
-      // Carro Reserva básico (qualquer outro, exceto TERCEIROS)
-      else if (/CARRO\s+RESERVA(?!\s+TERCEIROS)/i.test(text)) {
+      // Carro Reserva básico (exceto TERCEIROS e INDENIZA)
+      else if (/CARRO\s+RESERVA(?!\s+TERCEIROS|\s+INDENIZA)/i.test(text)) {
         check('chkCarroReserva', true);
-        fill('lblCarroReserva', 'Carro Reserva');
+        const m = text.match(/CARRO\s+RESERVA\s+([^\d\n]{3,120}?)(?=\s*[\d,]|\s*0,00|\n|$)/i);
+        const desc = m ? m[1].replace(/\s+/g, ' ').trim() : '';
+        fill('lblCarroReserva', 'Carro Reserva' + (desc ? ' — ' + desc : ''));
+        const diasM = desc.match(/(\d+)\s+DIAS/i);
+        if (diasM) fill('carroReservaDias', diasM[1]);
       }
 
       // Pequenos reparos
@@ -1854,6 +1884,7 @@
         { chk: 'chkVidros',                  lbl: 'lblVidros',                  val: null },
         { chk: 'chkCarroReserva',            lbl: 'lblCarroReserva',            val: null },
         { chk: 'chkCarroReservaTerceiros',   lbl: 'lblCarroReservaTerceiros',   val: null },
+        { chk: 'chkCarroReservaIntegral',    lbl: 'lblCarroReservaIntegral',    val: null },
         { chk: 'chkPequenosReparos',         lbl: 'lblPequenosReparos',         val: null },
         { chk: 'chkParachoque',              lbl: 'lblParachoque',              val: null },
         { chk: 'chkRodas',                   lbl: 'lblRodas',                   val: null },
