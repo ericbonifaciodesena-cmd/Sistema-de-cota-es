@@ -1426,12 +1426,14 @@
         `${val7.getFullYear()}-${String(val7.getMonth()+1).padStart(2,'0')}-${String(val7.getDate()).padStart(2,'0')}`);
 
       // ── SEGURADO ──────────────────────────────────────────────────
-      // Nome: coluna CPF/CNPJ em DADOS DO PROPRIETÁRIO → nome vem antes do número
-      const propM = text.match(/CPF\/CNPJ\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ\s]{3,50}?)\s+(\d{3}\.\d{3}\.\d{3}[-–]\d{2})/);
-      if (propM) { fill('nome', propM[1].trim()); fill('cpf', propM[2]); }
-      // Fallback CPF
-      const cpfM = text.match(/(\d{3}\.\d{3}\.\d{3}[-–]\d{2})/);
-      if (cpfM && !document.getElementById('cpf').value) fill('cpf', cpfM[1]);
+      // Nome: bloco ALL-CAPS após âncora "Nome do Segurado(a)"
+      const segNomeM = text.match(/Nome do Segurado\(a\)[\s\S]{0,200}?([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ]{2,}(?:\s+[A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ]{2,})+)/i);
+      if (segNomeM) fill('nome', segNomeM[1].trim());
+      // CPF: primeiro CPF dentro de 300 chars após "Nome do Segurado(a)"
+      const segCpfM = text.match(/Nome do Segurado\(a\)[\s\S]{0,300}?(\d{3}\.\d{3}\.\d{3}[-–]\d{2})/i);
+      const cpfM    = text.match(/(\d{3}\.\d{3}\.\d{3}[-–]\d{2})/);
+      if (segCpfM) fill('cpf', segCpfM[1]);
+      else if (cpfM) fill('cpf', cpfM[1]);
 
       // ── CONDUTOR PRINCIPAL (DADOS DO PERFIL) ─────────────────────
       // Nome: primeiro bloco de palavras em MAIÚSCULAS (≥2 letras cada) dentro de
