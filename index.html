@@ -1203,24 +1203,16 @@
       }
       fill('ano', anoVal);
 
-      // Modelo: pdf.js deste PDF extrai rótulos antes dos valores,
-      // então após "Veículo" vêm outros cabeçalhos antes do nome do veículo.
-      // Varre as linhas seguintes pulando rótulos/valores conhecidos.
+      // DEBUG TEMPORÁRIO: mostra texto ao redor de "Veículo" no campo modelo
+      // para entender o layout de extração do pdf.js
       {
-        const _veicIdx = text.search(/\bVe[íi]culo\b/);
-        if (_veicIdx >= 0) {
-          const _chunk = text.slice(_veicIdx, _veicIdx + 1200);
-          // Divide por \n E por 3+ espaços (pdf.js usa espaços como separador)
-          const _items = _chunk.split(/[\n\r]+|\s{3,}/).map(s => s.trim()).filter(s => s.length >= 3);
-          const _skip  = /^(Ve[íi]culo|Combust[íi]vel|Lota[çc][aã]o|Zero\s*KM|C[óo]digo\s*FIPE|Tipo\s+de\s+utiliza|Dispositivo|Chassi\s+rem|Data\s+sa[íi]da|Isen[çc][aã]o|Fabricante|Sim\b|N[aã]o\s*poss|N[aã]o\b|Gasolina|Diesel|[Ff]lex|GNV|El[eé]|Particular|\d)/i;
-          const _fabRe = /^(HYUNDAI|TOYOTA|HONDA|VOLKSWAGEN|CHEVROLET|FIAT|FORD|NISSAN|RENAULT|JEEP|BMW|MERCEDES|MITSUBISHI|KIA|PEUGEOT|CITRO[EÊ]N|TRIUMPH)\s+/i;
-          const _found = _items.find(s => !_skip.test(s));
-          if (_found) fill('modelo', _found.replace(_fabRe, '').trim());
+        const _di = text.search(/Ve.{0,3}culo/i);
+        if (_di >= 0) {
+          const _pre  = text.slice(Math.max(0, _di - 80), _di).replace(/\n/g, '↵');
+          const _post = text.slice(_di, _di + 150).replace(/\n/g, '↵');
+          fill('modelo', '«' + _pre + '|' + _post + '»');
         } else {
-          // Fallback: montadora conhecida + modelo até combustível
-          const _re = /(HYUNDAI|TOYOTA|HONDA|VOLKSWAGEN|CHEVROLET|FIAT|FORD|NISSAN|RENAULT|JEEP|BMW|MERCEDES|MITSUBISHI|KIA|PEUGEOT|CITRO[EÊ]N|TRIUMPH)\s+(.+?)(?=\s+(?:Flex|Gasolina|Diesel|El[eé]trico|H[íi]brido|[Áa]lcool))/i;
-          const _fb = text.match(_re);
-          if (_fb) fill('modelo', _fb[2].trim().replace(/\s+/g, ' '));
+          fill('modelo', 'VEICULO_NAO_ENCONTRADO');
         }
       }
 
