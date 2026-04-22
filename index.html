@@ -1340,9 +1340,9 @@
       if (itens.length) document.getElementById('franquias').value = itens.join(' | ');
 
       // ── FRANQUIA PRINCIPAL ─────────────────────────────────────────
-      // Padrão real: "25% da Básica | R$ 2.174,00"
-      const franqV = text.match(/25%\s+da\s+B[aá]sica\s*\|\s*R\$\s*([\d\.,]+)/i)
-                  || text.match(/Indenização Parcial do Ve[íi]culo\s+R\$\s*([\d.,]+)/i);
+      // Formatos: "R$ 6.855,00 (50% da Básica)" ou "25% da Básica | R$ 2.174,00"
+      const franqV = text.match(/Indeniza[çc][aã]o\s+Parcial\s+do\s+Ve[íi]culo[\s\S]{0,80}?R\$\s*([\d.]+,\d{2})/i)
+                  || text.match(/25%\s+da\s+B[aá]sica\s*\|\s*R\$\s*([\d\.,]+)/i);
       if (franqV) fill('franquiaValor', 'R$ ' + franqV[1]);
 
       // ── PAGAMENTO ─────────────────────────────────────────────────
