@@ -1203,15 +1203,16 @@
       }
       fill('ano', anoVal);
 
-      // Modelo: texto imediatamente abaixo/após âncora "Veículo"
-      // Cobre layout em linha ("Veículo  FIAT ARGO...") e em coluna (newline depois)
-      const veicM = text.match(/Ve[íi]culo[\s]*[\n\r]+\s*([^\n\r]{3,80})/i)
-                 || text.match(/Ve[íi]culo\s{2,}([^\n\r]{3,80})/i);
-      if (veicM) {
-        fill('modelo', veicM[1].trim());
+      // Modelo: texto na linha imediatamente após o label "Veículo" (minúsculo, não o header VEÍCULO)
+      // Sem flag /i para não bater no cabeçalho de seção em maiúsculas
+      const _veicIdx = text.search(/\bVe[íi]culo\b/);
+      if (_veicIdx >= 0) {
+        const _afterVeic = text.slice(_veicIdx + text.slice(_veicIdx).match(/\bVe[íi]culo\b/)[0].length);
+        const _veicLine = _afterVeic.match(/[\s\n\r]*([^\n\r]{3,80})/);
+        if (_veicLine) fill('modelo', _veicLine[1].trim());
       } else {
         // Fallback: montadora conhecida + nome até combustível
-        const reModelo = /(HYUNDAI|TOYOTA|HONDA|VOLKSWAGEN|CHEVROLET|FIAT|FORD|NISSAN|RENAULT|JEEP|BMW|MERCEDES|MITSUBISHI|KIA|PEUGEOT|CITRO[EÊ]N)\s+(.+?)(?=\s+(?:Flex|Gasolina|Diesel|El[eé]trico|H[íi]brido|[Áa]lcool))/i;
+        const reModelo = /(HYUNDAI|TOYOTA|HONDA|VOLKSWAGEN|CHEVROLET|FIAT|FORD|NISSAN|RENAULT|JEEP|BMW|MERCEDES|MITSUBISHI|KIA|PEUGEOT|CITRO[EÊ]N|TRIUMPH)\s+(.+?)(?=\s+(?:Flex|Gasolina|Diesel|El[eé]trico|H[íi]brido|[Áa]lcool))/i;
         const modeloFb = text.match(reModelo);
         if (modeloFb) fill('modelo', (modeloFb[1] + ' ' + modeloFb[2]).trim().replace(/\s+/g, ' '));
       }
