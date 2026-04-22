@@ -1340,8 +1340,11 @@
       if (itens.length) document.getElementById('franquias').value = itens.join(' | ');
 
       // ── FRANQUIA PRINCIPAL ─────────────────────────────────────────
-      // Formatos: "R$ 6.855,00 (50% da Básica)" ou "25% da Básica | R$ 2.174,00"
-      const franqV = text.match(/Indeniza[çc][aã]o\s+Parcial\s+do\s+Ve[íi]culo[\s\S]{0,80}?R\$\s*([\d.]+,\d{2})/i)
+      // Prioridade 1: seção FRANQUIAS → primeiro R$ value (é sempre o da Parcial)
+      // Prioridade 2: "Indeniza* Parcial" → R$ (até 500 chars, cobre col×col)
+      // Prioridade 3: formato antigo "25% da Básica | R$ X"
+      const franqV = text.match(/FRANQUIAS[\s\S]{0,500}?R\$\s*([\d.]+,\d{2})/i)
+                  || text.match(/Indeniza\S*\s+Parcial[\s\S]{0,500}?R\$\s*([\d.]+,\d{2})/i)
                   || text.match(/25%\s+da\s+B[aá]sica\s*\|\s*R\$\s*([\d\.,]+)/i);
       if (franqV) fill('franquiaValor', 'R$ ' + franqV[1]);
 
