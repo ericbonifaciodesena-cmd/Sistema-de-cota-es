@@ -1426,14 +1426,19 @@
         `${val7.getFullYear()}-${String(val7.getMonth()+1).padStart(2,'0')}-${String(val7.getDate()).padStart(2,'0')}`);
 
       // ── SEGURADO ──────────────────────────────────────────────────
-      // Nome: bloco ALL-CAPS após âncora "Nome do Segurado(a)"
-      const segNomeM = text.match(/Nome do Segurado\(a\)[\s\S]{0,200}?([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ]{2,}(?:\s+[A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ]{2,})+)/i);
-      if (segNomeM) fill('nome', segNomeM[1].trim());
-      // CPF: primeiro CPF dentro de 300 chars após "Nome do Segurado(a)"
-      const segCpfM = text.match(/Nome do Segurado\(a\)[\s\S]{0,300}?(\d{3}\.\d{3}\.\d{3}[-–]\d{2})/i);
+      // Busca em 2 etapas para evitar /i contaminar a classe de maiúsculas:
+      // 1) localiza âncora case-insensitive, 2) busca ALL-CAPS no trecho sem flag
+      const _segIdx = text.search(/Nome do Segurado\(a\)/i);
       const cpfM    = text.match(/(\d{3}\.\d{3}\.\d{3}[-–]\d{2})/);
-      if (segCpfM) fill('cpf', segCpfM[1]);
-      else if (cpfM) fill('cpf', cpfM[1]);
+      if (_segIdx >= 0) {
+        const _segArea = text.slice(_segIdx, _segIdx + 350);
+        // Primeira palavra ≥4 maiúsculas (filtra siglas CPF/CNPJ/DT) + continuação ≥2
+        const _segNomeM = _segArea.match(/([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ]{4,}(?:\s+[A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ]{2,})+)/);
+        if (_segNomeM) fill('nome', _segNomeM[1].trim());
+        const _segCpfM = _segArea.match(/(\d{3}\.\d{3}\.\d{3}[-–]\d{2})/);
+        if (_segCpfM) fill('cpf', _segCpfM[1]);
+        else if (cpfM) fill('cpf', cpfM[1]);
+      } else if (cpfM) fill('cpf', cpfM[1]);
 
       // ── CONDUTOR PRINCIPAL (DADOS DO PERFIL) ─────────────────────
       // Nome: primeiro bloco de palavras em MAIÚSCULAS (≥2 letras cada) dentro de
