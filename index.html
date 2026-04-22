@@ -1203,16 +1203,18 @@
       }
       fill('ano', anoVal);
 
-      // DEBUG TEMPORÁRIO: mostra texto ao redor de "Veículo" no campo modelo
-      // para entender o layout de extração do pdf.js
+      // Modelo: usa montadora (TRIUMPH/FIAT/etc.) como âncora — valor imediatamente
+      // após a montadora, pulando labels conhecidos (Veículo, Gasolina, etc.)
       {
-        const _di = text.search(/Ve.{0,3}culo/i);
-        if (_di >= 0) {
-          const _pre  = text.slice(Math.max(0, _di - 80), _di).replace(/\n/g, '↵');
-          const _post = text.slice(_di, _di + 150).replace(/\n/g, '↵');
-          fill('modelo', '«' + _pre + '|' + _post + '»');
-        } else {
-          fill('modelo', 'VEICULO_NAO_ENCONTRADO');
+        const _mfRe  = /\b(HYUNDAI|TOYOTA|HONDA|VOLKSWAGEN|VW|CHEVROLET|FIAT|FORD|NISSAN|RENAULT|JEEP|BMW|MERCEDES|MITSUBISHI|KIA|PEUGEOT|CITRO[EÊ]N|TRIUMPH)\b/;
+        const _mfM   = text.match(_mfRe);
+        const _skip  = /^(Ve.{0,3}culo|Fabricante|Combust|Lota|Zero|C.digo|Tipo\s+de|Dispositivo|Chassi|Data\s+sa|Isen|Gasolina|Diesel|[Ff]lex|GNV|El[eé]|Particular|Sim\b|N[aã]o\b|\d)/i;
+        if (_mfM) {
+          const _after = text.slice(_mfM.index + _mfM[0].length);
+          for (const _ln of _after.split(/[\n\r]+/)) {
+            const _t = _ln.trim();
+            if (_t.length >= 3 && !_skip.test(_t)) { fill('modelo', _t); break; }
+          }
         }
       }
 
