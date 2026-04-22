@@ -1210,14 +1210,12 @@
         const _veicIdx = text.search(/\bVe[íi]culo\b/);
         if (_veicIdx >= 0) {
           const _chunk = text.slice(_veicIdx, _veicIdx + 1200);
-          const _lines = _chunk.split(/\n/).slice(1).map(l => l.trim()).filter(l => l.length >= 3);
-          const _skip  = /^(Combust[íi]vel|Lota[çc][aã]o|Zero\s*KM|C[óo]digo\s*FIPE|Tipo\s+de\s+utiliza|Dispositivo|Chassi\s+rem|Data\s+sa[íi]da|Isen[çc][aã]o|Fabricante|Sim\b|N[aã]o\s*poss|N[aã]o\b|Gasolina|Diesel|[Ff]lex|GNV|El[eé]|Particular|\d)/i;
-          const _found = _lines.find(l => !_skip.test(l));
-          if (_found) {
-            // Se a linha começa com a montadora, remove ela (ex: "TRIUMPH SCRAMBLER 400XC")
-            const _fabRe = /^(HYUNDAI|TOYOTA|HONDA|VOLKSWAGEN|CHEVROLET|FIAT|FORD|NISSAN|RENAULT|JEEP|BMW|MERCEDES|MITSUBISHI|KIA|PEUGEOT|CITRO[EÊ]N|TRIUMPH)\s+/i;
-            fill('modelo', _found.replace(_fabRe, '').trim());
-          }
+          // Divide por \n E por 3+ espaços (pdf.js usa espaços como separador)
+          const _items = _chunk.split(/[\n\r]+|\s{3,}/).map(s => s.trim()).filter(s => s.length >= 3);
+          const _skip  = /^(Ve[íi]culo|Combust[íi]vel|Lota[çc][aã]o|Zero\s*KM|C[óo]digo\s*FIPE|Tipo\s+de\s+utiliza|Dispositivo|Chassi\s+rem|Data\s+sa[íi]da|Isen[çc][aã]o|Fabricante|Sim\b|N[aã]o\s*poss|N[aã]o\b|Gasolina|Diesel|[Ff]lex|GNV|El[eé]|Particular|\d)/i;
+          const _fabRe = /^(HYUNDAI|TOYOTA|HONDA|VOLKSWAGEN|CHEVROLET|FIAT|FORD|NISSAN|RENAULT|JEEP|BMW|MERCEDES|MITSUBISHI|KIA|PEUGEOT|CITRO[EÊ]N|TRIUMPH)\s+/i;
+          const _found = _items.find(s => !_skip.test(s));
+          if (_found) fill('modelo', _found.replace(_fabRe, '').trim());
         } else {
           // Fallback: montadora conhecida + modelo até combustível
           const _re = /(HYUNDAI|TOYOTA|HONDA|VOLKSWAGEN|CHEVROLET|FIAT|FORD|NISSAN|RENAULT|JEEP|BMW|MERCEDES|MITSUBISHI|KIA|PEUGEOT|CITRO[EÊ]N|TRIUMPH)\s+(.+?)(?=\s+(?:Flex|Gasolina|Diesel|El[eé]trico|H[íi]brido|[Áa]lcool))/i;
