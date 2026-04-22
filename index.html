@@ -1433,10 +1433,6 @@
       const cpfM = text.match(/(\d{3}\.\d{3}\.\d{3}[-–]\d{2})/);
       if (cpfM && !document.getElementById('cpf').value) fill('cpf', cpfM[1]);
 
-      // Data nascimento: DD/MM/AAAA seguido de IDADE Masculino/Feminino
-      const nascSegM = text.match(/(\d{2}\/\d{2}\/\d{4})\s+\d{1,3}\s+(?:Masculino|Feminino)/i);
-      if (nascSegM) fill('dataNasc', toISO(nascSegM[1]));
-
       // ── CONDUTOR PRINCIPAL (DADOS DO PERFIL) ─────────────────────
       // Nome: primeiro bloco de palavras em MAIÚSCULAS (≥2 letras cada) dentro de
       // 200 chars após "Nome do Principal Condutor" — funciona em row×row e col×col
@@ -1450,7 +1446,7 @@
         const condEcM = bloco.match(/(Casad[^\d]{0,30}?|Solteir[^\d]{0,10}?|Divorc[^\d]{0,15}?|Vi[uú]v[^\d]{0,10}?|Separ[^\d]{0,15}?)\s+\d{2}\//i);
         if (condEcM) {
           const ec = condEcM[1].replace(/\s*\/[\s\S]*/, '').trim();
-          fill('condutorEstadoCivil', ec); fill('estadoCivil', ec);
+          fill('condutorEstadoCivil', ec);
         }
       }
 
@@ -1459,12 +1455,23 @@
                      || text.match(/(\d{2}\/\d{2}\/\d{4})\s+\d{1,3}\s+(?:Masculino|Feminino)/i);
       if (condDateM) {
         fill('condutorDataNasc', toISO(condDateM[1]));
-        if (!document.getElementById('dataNasc').value) fill('dataNasc', toISO(condDateM[1]));
       }
 
       // CPF condutor
       const cpfCondM = text.match(/CPF Condutor[^\d]*(\d{3}\.\d{3}\.\d{3}[-–]\d{2})/i);
-      fill('condutorCpf', cpfCondM ? cpfCondM[1] : (cpfM ? cpfM[1] : ''));
+      fill('condutorCpf', cpfCondM ? cpfCondM[1] : '');
+
+      // Se segurado = condutor (mesmo CPF), copia EC e data de nascimento
+      {
+        const _sCpf = document.getElementById('cpf').value;
+        const _cCpf = document.getElementById('condutorCpf').value;
+        if (_sCpf && _cCpf && _sCpf === _cCpf) {
+          const _ec = document.getElementById('condutorEstadoCivil').value;
+          const _dn = document.getElementById('condutorDataNasc').value;
+          if (_ec && !document.getElementById('estadoCivil').value) fill('estadoCivil', _ec);
+          if (_dn && !document.getElementById('dataNasc').value)    fill('dataNasc', _dn);
+        }
+      }
 
       // ── JOVEM CONDUTOR ────────────────────────────────────────────
       const jovemM = text.match(/residentes habilitados[^?]*\?\s*(Sim|N[aã]o(?:\s+se\s+aplica)?)/i);
@@ -1487,14 +1494,18 @@
       if (cepM) fill('cep', cepM[1]);
 
       // ── COBERTURAS ESSENCIAIS ─────────────────────────────────────
-      // BASICA 01-COMPREENSIVA: LMI é "VMR FIPE x 100%" (texto), depois Prêmio e Franquia
-      const compreM = text.match(/COMPREENSIVA\s+VMR FIPE x 100%\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})/i)
+      // BASICA 01-COMPREENSIVA: LMI é "VMR FIPE x N%" (dinâmico)
+      const fipePctM = text.match(/VMR\s+FIPE\s+x\s+(\d+)/i);
+      const compreM = text.match(/COMPREENSIVA[\s\S]{0,60}?VMR\s+FIPE\s+x\s+[\d,]+%\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})/i)
                    || text.match(/COMPREENSIVA[^\d]*([\d.]+,\d{2})\s+([\d.]+,\d{2})/i);
       if (compreM) {
         check('chkColisao', true);
-        fill('valColisao', '100%');
-        fill('franquiaValor', 'R$ ' + (compreM[2] || compreM[1]));
+        fill('valColisao', (fipePctM ? fipePctM[1] : '100') + '%');
       }
+      // Franquia: prioriza "Franquia LAP (R$)" sobre o 2º valor do compreM
+      const lapM = text.match(/Franquia\s+LAP\s*\([^)]*\)\s*([\d.]+,\d{2})/i);
+      if (lapM) fill('franquiaValor', 'R$ ' + lapM[1]);
+      else if (compreM) fill('franquiaValor', 'R$ ' + (compreM[2] || compreM[1]));
 
       // RC Materiais
       const rcMatM = text.match(/DANOS MATERIAIS\s+([\d.]+,\d{2})/i);
