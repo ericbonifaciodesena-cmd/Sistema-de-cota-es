@@ -1213,7 +1213,12 @@
           const _after = text.slice(_mfM.index + _mfM[0].length);
           for (const _ln of _after.split(/[\n\r]+/)) {
             const _t = _ln.trim();
-            if (_t.length >= 3 && !_skip.test(_t)) { fill('modelo', _t); break; }
+          if (_t.length >= 3 && !_skip.test(_t)) {
+            // Linha pode conter modelo + outros dados; pega só até o combustível/próximo dado
+            const _cut = _t.match(/^(.+?)(?=\s+(?:Gasolina|Diesel|[Ff]lex|GNV|El[eé]t|[Aa]lcool|\d{2}\/\d{2}\/\d{4}|\d{5}-\d{3}))/);
+            fill('modelo', (_cut ? _cut[1] : _t).trim());
+            break;
+          }
           }
         }
       }
