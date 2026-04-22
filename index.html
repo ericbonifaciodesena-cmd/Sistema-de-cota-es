@@ -1203,16 +1203,17 @@
       }
       fill('ano', anoVal);
 
-      // Modelo: montadora + nome do veículo antes do combustível, buscando após o ano
-      const reModelo = /(HYUNDAI|TOYOTA|HONDA|VOLKSWAGEN|CHEVROLET|FIAT|FORD|NISSAN|RENAULT|JEEP|BMW|MERCEDES|MITSUBISHI|KIA|PEUGEOT|CITRO[EÊ]N)\s+(.+?)(?=\s+(?:Flex|Gasolina|Diesel|El[eé]trico|H[íi]brido|[Áa]lcool))/i;
-      if (anoVal) {
-        const anoIdx = text.indexOf(anoVal, placaM ? text.indexOf(placaM[1]) : 0);
-        const afterAno = anoIdx >= 0 ? text.slice(anoIdx) : text;
-        const modeloM = afterAno.match(reModelo);
-        if (modeloM) fill('modelo', (modeloM[1] + ' ' + modeloM[2]).trim().replace(/\s+/g, ' '));
+      // Modelo: texto imediatamente abaixo/após âncora "Veículo"
+      // Cobre layout em linha ("Veículo  FIAT ARGO...") e em coluna (newline depois)
+      const veicM = text.match(/Ve[íi]culo[\s]*[\n\r]+\s*([^\n\r]{3,80})/i)
+                 || text.match(/Ve[íi]culo\s{2,}([^\n\r]{3,80})/i);
+      if (veicM) {
+        fill('modelo', veicM[1].trim());
       } else {
-        const modeloM = text.match(reModelo);
-        if (modeloM) fill('modelo', (modeloM[1] + ' ' + modeloM[2]).trim().replace(/\s+/g, ' '));
+        // Fallback: montadora conhecida + nome até combustível
+        const reModelo = /(HYUNDAI|TOYOTA|HONDA|VOLKSWAGEN|CHEVROLET|FIAT|FORD|NISSAN|RENAULT|JEEP|BMW|MERCEDES|MITSUBISHI|KIA|PEUGEOT|CITRO[EÊ]N)\s+(.+?)(?=\s+(?:Flex|Gasolina|Diesel|El[eé]trico|H[íi]brido|[Áa]lcool))/i;
+        const modeloFb = text.match(reModelo);
+        if (modeloFb) fill('modelo', (modeloFb[1] + ' ' + modeloFb[2]).trim().replace(/\s+/g, ' '));
       }
 
       // ── COBERTURAS ESSENCIAIS ──────────────────────────────────────
