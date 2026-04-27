@@ -1578,15 +1578,15 @@
       }
 
       // ── COBERTURAS ADICIONAIS ─────────────────────────────────────
-      if (/ASSISTENCIA\s*[-–]\s*SUPERIOR/i.test(text)) {
+      if (/ASSIST[\s\S]{0,150}?SUPERIOR/i.test(text)) {
         check('chkAssistencia', true);
         fill('assistenciaKm', 'Ilimitado');
         fill('lblAssistencia', 'Assistência 24h — Superior (Pane 1.000km | Colisão Ilimitado)');
-      } else if (/ASSISTENCIA\s*[-–]\s*INTERMEDIARIA/i.test(text)) {
+      } else if (/ASSIST[\s\S]{0,150}?INTERMED/i.test(text)) {
         check('chkAssistencia', true);
         fill('assistenciaKm', '1000');
         fill('lblAssistencia', 'Assistência 24h — Intermediária (Pane 500km | Colisão 1.000km)');
-      } else if (/ASSISTENCIA\s*[-–]\s*BASICO/i.test(text)) {
+      } else if (/ASSIST[\s\S]{0,150}?B[AÁ]SIC/i.test(text)) {
         check('chkAssistencia', true);
         fill('assistenciaKm', '300');
         fill('lblAssistencia', 'Assistência 24h — Básico (Pane 300km | Colisão 300km)');
@@ -1598,11 +1598,17 @@
         fill('lblVidros', 'Vidros, faróis, lanternas e retrovisores');
       }
 
+      // Helper: extrai descrição após nome da cobertura até o preço (R$ X,XX)
+      // Permite dígitos na descrição (ex: "15 DIAS BASICO"); para antes de "N,NN" (preço)
+      function descCob(re) {
+        const m = text.match(re);
+        return m ? m[1].replace(/\s+/g, ' ').trim() : '';
+      }
+
       // Carro Reserva a Terceiros
       if (/CARRO\s+RESERVA\s+TERCEIROS/i.test(text)) {
         check('chkCarroReservaTerceiros', true);
-        const m = text.match(/CARRO\s+RESERVA\s+TERCEIROS\s+([^\d\n]{3,120}?)(?=\s*[\d,]|\s*0,00|\n|$)/i);
-        const desc = m ? m[1].replace(/\s+/g, ' ').trim() : '';
+        const desc = descCob(/CARRO\s+RESERVA\s+TERCEIROS\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i);
         fill('lblCarroReservaTerceiros', 'Carro Reserva a Terceiros' + (desc ? ' — ' + desc : ''));
         const diasM = desc.match(/(\d+)\s+DIAS/i);
         if (diasM) fill('carroReservaTerceirosDias', diasM[1]);
@@ -1611,8 +1617,7 @@
       // Carro Reserva Indenização Integral
       if (/CARRO\s+RESERVA\s+INDENIZA/i.test(text)) {
         check('chkCarroReservaIntegral', true);
-        const m = text.match(/CARRO\s+RESERVA\s+INDENIZA\S*(?:\s+INTEGRAL)?\s+([^\d\n]{3,120}?)(?=\s*[\d,]|\s*0,00|\n|$)/i);
-        const desc = m ? m[1].replace(/\s+/g, ' ').trim() : '';
+        const desc = descCob(/CARRO\s+RESERVA\s+INDENIZA\S*(?:\s+INTEGRAL)?\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i);
         fill('lblCarroReservaIntegral', 'Carro Reserva Indenização Integral' + (desc ? ' — ' + desc : ''));
         const diasM = desc.match(/(\d+)\s+DIAS/i);
         if (diasM) fill('carroReservaIntegralDias', diasM[1]);
@@ -1620,8 +1625,7 @@
       // Carro Reserva ou Desc.Frq
       else if (/CARRO\s+RESERVA\s+OU\s+DESC/i.test(text)) {
         check('chkCarroReserva', true);
-        const m = text.match(/CARRO\s+RESERVA\s+OU\s+DESC\.?\s*FRQ\s+([^\d\n]{5,120}?)(?=\s*[\d,]|\s*0,00|\n|$)/i);
-        const desc = m ? m[1].replace(/\s+/g, ' ').trim() : '';
+        const desc = descCob(/CARRO\s+RESERVA\s+OU\s+DESC\.?\s*FRQ\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i);
         fill('lblCarroReserva', 'Carro Reserva ou Desc.Frq' + (desc ? ' — ' + desc : ''));
         const diasM = desc.match(/(\d+)\s+DIAS/i);
         if (diasM) fill('carroReservaDias', diasM[1]);
@@ -1629,8 +1633,7 @@
       // Carro Reserva básico (exceto TERCEIROS e INDENIZA)
       else if (/CARRO\s+RESERVA(?!\s+TERCEIROS|\s+INDENIZA)/i.test(text)) {
         check('chkCarroReserva', true);
-        const m = text.match(/CARRO\s+RESERVA\s+([^\d\n]{3,120}?)(?=\s*[\d,]|\s*0,00|\n|$)/i);
-        const desc = m ? m[1].replace(/\s+/g, ' ').trim() : '';
+        const desc = descCob(/CARRO\s+RESERVA\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i);
         fill('lblCarroReserva', 'Carro Reserva' + (desc ? ' — ' + desc : ''));
         const diasM = desc.match(/(\d+)\s+DIAS/i);
         if (diasM) fill('carroReservaDias', diasM[1]);
