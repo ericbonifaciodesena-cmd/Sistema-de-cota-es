@@ -1379,12 +1379,12 @@
         fill('cartaoValor', valParc(12));
       }
 
-      // Débito e boleto: padrão Tokio = 5x sem juros (calculado)
+      // Débito e boleto: padrão Tokio — débito 5x, boleto 4x sem juros
       if (premioNum > 0) {
         fill('debitoParcelas', '5');
         fill('debitoValor', valParc(5));
-        fill('boletoParcelas', '5');
-        fill('boletoValor', valParc(5));
+        fill('boletoParcelas', '4');
+        fill('boletoValor', valParc(4));
       }
 
       // ── Exibe formulário preenchido ────────────────────────────────
