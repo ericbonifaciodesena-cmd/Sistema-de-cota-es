@@ -1739,7 +1739,6 @@
       if (validM) fill('validadeCotacao', toISO(validM[1]));
 
       // ── SEGURADO ──────────────────────────────────────────────────
-      // "Nome: BEATRIZ DE CASTRO MARINI" — seção SUAS INFORMAÇÕES
       const nomeM = text.match(/Nome:\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ\s]{3,60?})(?=\s{2,}|\n|CPF|Data)/);
       if (nomeM) {
         const nome = nomeM[1].trim();
@@ -1838,38 +1837,94 @@
       }
 
       // ── ASSISTÊNCIA 24H ──────────────────────────────────────────
-      // "Assistência 24 hs   Plano 2"
+      // Linha na tabela: "Assistência 24 hs   Plano 2"
       const assistM = text.match(/Assist[eê]ncia\s+24\s*h[s]?[\s\S]{0,80}?(Plano\s+\d)/i);
       if (assistM) {
         check('chkAssistencia', true);
         const num = (assistM[1].match(/\d/) || ['2'])[0];
         const mapaAssist = {
-          '1': ['200',       'Assistência 24h — Plano 1 (Reboque 200km)'],
-          '2': ['500',       'Assistência 24h — Plano 2 (Reboque 500km)'],
-          '3': ['Ilimitado', 'Assistência 24h — Plano 3 (Reboque Ilimitado)'],
+          '1': ['200',       'Assistência 24h Plano 1 (Reboque até 200km)'],
+          '2': ['500',       'Assistência 24h Plano 2 (Reboque até 500km)'],
+          '3': ['Ilimitado', 'Assistência 24h Plano 3 (Reboque Ilimitado)'],
         };
         const [km, lbl] = mapaAssist[num] || mapaAssist['2'];
         fill('assistenciaKm', km);
         fill('lblAssistencia', lbl);
       }
 
+      // Guincho: linha "Guincho   500 Km" na tabela de coberturas
+      const guinchoLmi = lmiCob(/Guincho[\s\S]{0,60}?([\d.]+\s*[Kk]m)/i);
+      if (guinchoLmi) {
+        // Acrescenta o guincho ao label de assistência quando já marcado
+        const lblAssEl = document.getElementById('lblAssistencia');
+        if (lblAssEl && lblAssEl.value) {
+          lblAssEl.value += ` | Guincho ${guinchoLmi.trim()}`;
+        }
+      }
+
       // ── VIDROS ────────────────────────────────────────────────────
-      // "Vidros, lanternas, faróis e retrovisores   Plano 3"
+      // Linha na tabela: "Vidros, lanternas, faróis e retrovisores   Plano 3"
       const vidrosM = text.match(/Vidros[,\s]+lanternas[\s\S]{0,100}?(Plano\s+\d)/i);
       if (vidrosM) {
         check('chkVidros', true);
         const num = (vidrosM[1].match(/\d/) || ['2'])[0];
         const mapaVidros = {
-          '1': 'Vidros Completos — Plano 1 (Vidros)',
-          '2': 'Vidros Completos — Plano 2 (Vidros, Faróis, Lanternas e Retrovisores)',
-          '3': 'Vidros Completos — Plano 3 (Plano 2 + Pequenos Reparos + Rodas/Pneus/Suspensão)',
-          '4': 'Vidros Completos — Plano 4 (Plano 3 + Vidros com Logomarca)',
+          '1': 'Vidros - Plano 1',
+          '2': 'Vidros Completos - Plano 2',
+          '3': 'Vidros Completos - Plano 3',
+          '4': 'Vidros Completos - Plano 4 (com logomarca)',
         };
         fill('lblVidros', mapaVidros[num] || mapaVidros['2']);
+        // Plano 3 e 4 incluem Pequenos Reparos e Proteção Rodas/Pneus
+        if (num >= '3') {
+          check('chkPequenosReparos', true);
+          fill('lblPequenosReparos', 'Pequenos Reparos (incluso no Plano de Vidros)');
+          check('chkRodas', true);
+          fill('lblRodas', 'Proteção Pneu e Roda (incluso no Plano de Vidros)');
+        }
+        // Plano 4 inclui logomarca
+        if (num === '4') check('chkLogomarca', true);
+      }
+
+      // ── FRANQUIAS DE VIDROS ───────────────────────────────────────
+      // Seção "ASSISTÊNCIA A VIDROS, LANTERNAS, FARÓIS E RETROVISORES - PLANO X"
+      // Tabela com pares nome | valor lado a lado
+      const vidFrqSecM = text.match(/ASSIST[EÊ]NCIA\s+A\s+VIDROS[\s\S]{0,2000}?(?=OUTRAS FORMAS|CARRO RESERVA|GUINCHO|INFORMA|$)/i);
+      if (vidFrqSecM) {
+        const sec = vidFrqSecM[0];
+        const pecasVidros = [
+          ['Parabrisa',            /Parabrisa\D{0,20}?([\d.]+,\d{2})/i],
+          ['Vidro Traseiro',       /Vidro\s+Traseiro\D{0,20}?([\d.]+,\d{2})/i],
+          ['Vidros Laterais',      /Vidros?\s+Laterais?\D{0,20}?([\d.]+,\d{2})/i],
+          ['Farol Convencional',   /Farol\s+Convencional\D{0,20}?([\d.]+,\d{2})/i],
+          ['Farol Auxiliar/Milha', /Farol\s+Auxiliar[\s\/]*Milha\D{0,20}?([\d.]+,\d{2})/i],
+          ['Farol Xênon e Led',    /Farol\s+X[eê]non[^\d]{0,20}?([\d.]+,\d{2})/i],
+          ['Lanternas Led',        /Lanternas?\s+Led\D{0,20}?([\d.]+,\d{2})/i],
+          ['Lanterna Convencional',/Lanterna\s+Convencional\D{0,20}?([\d.]+,\d{2})/i],
+          ['Lanterna Auxiliar',    /Lanterna\s+Auxiliar\D{0,20}?([\d.]+,\d{2})/i],
+          ['Retrovisores',         /Retrovisor[^\d]{0,20}?([\d.]+,\d{2})/i],
+          ['Teto Solar',           /Teto\s+Solar\D{0,20}?([\d.]+,\d{2})/i],
+          ['Pequenos Reparos',     /Pequenos?\s+Reparos?\D{0,20}?([\d.]+,\d{2})/i],
+          ['Proteção Pneu e Roda', /Prote[çc][aã]o\s+Pneu[^\d]{0,30}?([\d.]+,\d{2})/i],
+        ];
+        const itensVidros = [];
+        for (const [nome, re] of pecasVidros) {
+          const m = sec.match(re);
+          if (m) itensVidros.push(`${nome}: R$ ${m[1]}`);
+        }
+        if (itensVidros.length) {
+          const franqEl = document.getElementById('franquias');
+          if (franqEl) {
+            const existing = franqEl.value.trim();
+            franqEl.value = existing
+              ? existing + ' | ' + itensVidros.join(' | ')
+              : itensVidros.join(' | ');
+          }
+        }
       }
 
       // ── CARRO RESERVA ─────────────────────────────────────────────
-      const crSecM = text.match(/CARRO\s+RESERVA[\s\S]{0,600}?(?=OUTRAS FORMAS|ASSIST|$)/i);
+      const crSecM = text.match(/CARRO\s+RESERVA[\s\S]{0,600}?(?=OUTRAS FORMAS|GUINCHO|ASSIST[EÊ]NCIA\s+A\s+VIDROS|$)/i);
       if (crSecM) {
         const crSec = crSecM[0];
         const diasM = crSec.match(/(\d+)\s*[Dd]i[aá]/);
@@ -1885,9 +1940,10 @@
       }
 
       // ── PAGAMENTO ─────────────────────────────────────────────────
+      // Extrai parcela máxima sem juros de um bloco de texto da seção de pagamento.
+      // Formato Allianz: "01 sem juros 4.602,00" / "02 5,00% 2.357,11"
       function maiorSemJurosAllianz(bloco, max) {
         let maxN = 0, parcelas = '', valor = '';
-        // "01 sem juros 4.602,00" ou "10 sem juros 460,20"
         for (const m of bloco.matchAll(/(\d{1,2})\s+(?:sem\s+juros|0[,.]00%)\s+([\d.]+,\d{2})/gi)) {
           const n = parseInt(m[1]);
           if (n > maxN && n <= max) { maxN = n; parcelas = String(n); valor = m[2]; }
@@ -1898,26 +1954,29 @@
         return premioNum > 0 ? (premioNum / n).toFixed(2).replace('.', ',') : '';
       }
 
+      // Boleto: apenas 01 sem juros; a partir da 2ª há juros de 5%
       const boletoSecM = text.match(/Boleto\s+Banc[aá]rio[\s\S]{0,600}?(?=D[eé]bito\s+em|Cart[aã]o|$)/i);
       if (boletoSecM) {
         const { parcelas, valor } = maiorSemJurosAllianz(boletoSecM[0], 10);
-        fill('boletoParcelas', parcelas || '4');
-        fill('boletoValor', valor || valCalc(4));
+        fill('boletoParcelas', parcelas || '1');
+        fill('boletoValor', valor || (precoTotalM ? precoTotalM[1] : valCalc(1)));
       } else if (premioNum > 0) {
-        fill('boletoParcelas', '4');
-        fill('boletoValor', valCalc(4));
+        fill('boletoParcelas', '1');
+        fill('boletoValor', valCalc(1));
       }
 
+      // Débito: 01–06 sem juros; a partir da 7ª com juros variáveis
       const debitoSecM = text.match(/D[eé]bito\s+em\s+Conta[\s\S]{0,600}?(?=Cart[aã]o\s+de|Boleto|$)/i);
       if (debitoSecM) {
         const { parcelas, valor } = maiorSemJurosAllianz(debitoSecM[0], 10);
-        fill('debitoParcelas', parcelas || '10');
-        fill('debitoValor', valor || valCalc(10));
+        fill('debitoParcelas', parcelas || '6');
+        fill('debitoValor', valor || valCalc(6));
       } else if (premioNum > 0) {
-        fill('debitoParcelas', '10');
-        fill('debitoValor', valCalc(10));
+        fill('debitoParcelas', '6');
+        fill('debitoValor', valCalc(6));
       }
 
+      // Cartão: 01–10 sem juros
       const cartaoSecM = text.match(/Cart[aã]o\s+de\s+Cr[eé]dito[\s\S]{0,600}?(?=Boleto|D[eé]bito|$)/i);
       if (cartaoSecM) {
         const { parcelas, valor } = maiorSemJurosAllianz(cartaoSecM[0], 12);
