@@ -1738,19 +1738,49 @@
       const validM = text.match(/Garantimos[\s\S]{0,100}?at[eé]\s+(\d{2}\/\d{2}\/\d{4})/i);
       if (validM) fill('validadeCotacao', toISO(validM[1]));
 
-      // ── SEGURADO ──────────────────────────────────────────────────
-      const nomeM = text.match(/Nome:\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ\s]{3,60?})(?=\s{2,}|\n|CPF|Data)/);
-      if (nomeM) {
-        const nome = nomeM[1].trim();
-        fill('nome', nome);
-        fill('condutorNome', nome);
+      // ── SEGURADO (SUAS INFORMAÇÕES) ──────────────────────────────
+      // Isola a seção para não capturar dados do condutor ou veículo
+      const suasIdx = text.search(/SUAS\s+INFORMA[ÇC][ÕO]ES/i);
+      const suasSec = suasIdx >= 0 ? text.slice(suasIdx, suasIdx + 600) : text;
+
+      const nomeM = suasSec.match(/Nome:\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ\s]{2,60})(?=\s{2,}|\n|CPF|Data|$)/i)
+                 || suasSec.match(/Nome:\s+(.+?)(?=\n)/i);
+      if (nomeM) fill('nome', nomeM[1].trim());
+
+      const cpfSegM = suasSec.match(/CPF[:\s]+(\d{3}[\.\s]\d{3}[\.\s]\d{3}[-–]\d{2})/i);
+      if (cpfSegM) fill('cpf', cpfSegM[1].replace(/\s/g, ''));
+
+      const nascSegM = suasSec.match(/(?:Nascimento|Nasc\.?)[:\s]+(\d{2}\/\d{2}\/\d{4})/i);
+      if (nascSegM) fill('dataNasc', toISO(nascSegM[1]));
+
+      // ── CONDUTOR PRINCIPAL (INFORMAÇÕES DO CONDUTOR PRINCIPAL) ───
+      const condIdx = text.search(/INFORMA[ÇC][ÕO]ES\s+DO\s+CONDUTOR\s+PRINCIPAL/i);
+      const condSec = condIdx >= 0 ? text.slice(condIdx, condIdx + 800) : '';
+
+      if (condSec) {
+        const condNomeM = condSec.match(/Nome:\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ\s]{2,60})(?=\s{2,}|\n|CPF|Data|$)/i)
+                       || condSec.match(/Nome:\s+(.+?)(?=\n)/i);
+        if (condNomeM) fill('condutorNome', condNomeM[1].trim());
+
+        const condCpfM = condSec.match(/CPF[:\s]+(\d{3}[\.\s]\d{3}[\.\s]\d{3}[-–]\d{2})/i);
+        if (condCpfM) fill('condutorCpf', condCpfM[1].replace(/\s/g, ''));
+
+        const condNascM = condSec.match(/(?:Nascimento|Nasc\.?)[:\s]+(\d{2}\/\d{2}\/\d{4})/i);
+        if (condNascM) fill('condutorDataNasc', toISO(condNascM[1]));
+
+        const condEcM = condSec.match(/Estado\s+Civil[:\s]+(Casad\S*|Solteir\S*|Divorc\S*|Vi[uú]v\S*|Separ\S*)/i);
+        if (condEcM) fill('condutorEstadoCivil', condEcM[1].trim());
+
+        // Jovem condutor (18–25 anos)
+        const jovemM = condSec.match(/(?:[Jj]ovem\s+[Cc]ondutor|[Aa]utori[sz]a\s+(?:jovem\s+)?condutor)[:\s]*(Sim|N[aã]o)/i)
+                    || condSec.match(/(Sim|N[aã]o)\s*[-–]\s*[Jj]ovem/i);
+        if (jovemM) fill('jovemCondutor', /sim/i.test(jovemM[1]) ? 'Sim' : 'Não');
       }
 
-      const cpfM = text.match(/CPF[:\s]+(\d{3}\.\d{3}\.\d{3}[-–]\d{2})/);
-      if (cpfM) { fill('cpf', cpfM[1]); fill('condutorCpf', cpfM[1]); }
-
-      const nascM = text.match(/(?:Nascimento|Nasc\.?)[:\s]+(\d{2}\/\d{2}\/\d{4})/i);
-      if (nascM) { fill('dataNasc', toISO(nascM[1])); fill('condutorDataNasc', toISO(nascM[1])); }
+      // CEP de pernoite: seção "INFORMAÇÕES DO SEU SEGURO"
+      const cepSecM = text.match(/INFORMA[ÇC][ÕO]ES\s+DO\s+SEU\s+SEGURO[\s\S]{0,600}?CEP[:\s]+(\d{5}-?\d{3})/i)
+                   || text.match(/CEP[:\s]+(\d{5}-?\d{3})/i);
+      if (cepSecM) fill('cep', cepSecM[1]);
 
       if (/Uso\s+Particular/i.test(text) || /Particular/i.test(text)) fill('uso', 'Particular');
 
@@ -1850,16 +1880,6 @@
         const [km, lbl] = mapaAssist[num] || mapaAssist['2'];
         fill('assistenciaKm', km);
         fill('lblAssistencia', lbl);
-      }
-
-      // Guincho: linha "Guincho   500 Km" na tabela de coberturas
-      const guinchoLmi = lmiCob(/Guincho[\s\S]{0,60}?([\d.]+\s*[Kk]m)/i);
-      if (guinchoLmi) {
-        // Acrescenta o guincho ao label de assistência quando já marcado
-        const lblAssEl = document.getElementById('lblAssistencia');
-        if (lblAssEl && lblAssEl.value) {
-          lblAssEl.value += ` | Guincho ${guinchoLmi.trim()}`;
-        }
       }
 
       // ── VIDROS ────────────────────────────────────────────────────
