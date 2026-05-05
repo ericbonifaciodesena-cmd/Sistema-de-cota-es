@@ -1747,23 +1747,24 @@
                  || suasSec.match(/Nome:\s+(.+?)(?=\n)/i);
       if (nomeM) fill('nome', nomeM[1].trim());
 
-      const cpfSegM = suasSec.match(/CPF[:\s]+(\d{3}[\.\s]\d{3}[\.\s]\d{3}[-–]\d{2})/i);
-      if (cpfSegM) fill('cpf', cpfSegM[1].replace(/\s/g, ''));
+      // CPF: formato XXX.XXX.XXX-XX (ponto como separador fixo na Allianz)
+      const cpfSegM = suasSec.match(/(\d{3}\.\d{3}\.\d{3}[-–]\d{2})/);
+      if (cpfSegM) fill('cpf', cpfSegM[1]);
 
       const nascSegM = suasSec.match(/(?:Nascimento|Nasc\.?)[:\s]+(\d{2}\/\d{2}\/\d{4})/i);
       if (nascSegM) fill('dataNasc', toISO(nascSegM[1]));
 
       // ── CONDUTOR PRINCIPAL (INFORMAÇÕES DO CONDUTOR PRINCIPAL) ───
       const condIdx = text.search(/INFORMA[ÇC][ÕO]ES\s+DO\s+CONDUTOR\s+PRINCIPAL/i);
-      const condSec = condIdx >= 0 ? text.slice(condIdx, condIdx + 800) : '';
+      const condSec = condIdx >= 0 ? text.slice(condIdx, condIdx + 1000) : '';
 
       if (condSec) {
         const condNomeM = condSec.match(/Nome:\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ\s]{2,60})(?=\s{2,}|\n|CPF|Data|$)/i)
                        || condSec.match(/Nome:\s+(.+?)(?=\n)/i);
         if (condNomeM) fill('condutorNome', condNomeM[1].trim());
 
-        const condCpfM = condSec.match(/CPF[:\s]+(\d{3}[\.\s]\d{3}[\.\s]\d{3}[-–]\d{2})/i);
-        if (condCpfM) fill('condutorCpf', condCpfM[1].replace(/\s/g, ''));
+        const condCpfM = condSec.match(/(\d{3}\.\d{3}\.\d{3}[-–]\d{2})/);
+        if (condCpfM) fill('condutorCpf', condCpfM[1]);
 
         const condNascM = condSec.match(/(?:Nascimento|Nasc\.?)[:\s]+(\d{2}\/\d{2}\/\d{4})/i);
         if (condNascM) fill('condutorDataNasc', toISO(condNascM[1]));
@@ -1771,15 +1772,17 @@
         const condEcM = condSec.match(/Estado\s+Civil[:\s]+(Casad\S*|Solteir\S*|Divorc\S*|Vi[uú]v\S*|Separ\S*)/i);
         if (condEcM) fill('condutorEstadoCivil', condEcM[1].trim());
 
-        // Jovem condutor (18–25 anos)
-        const jovemM = condSec.match(/(?:[Jj]ovem\s+[Cc]ondutor|[Aa]utori[sz]a\s+(?:jovem\s+)?condutor)[:\s]*(Sim|N[aã]o)/i)
-                    || condSec.match(/(Sim|N[aã]o)\s*[-–]\s*[Jj]ovem/i);
+        // "Deseja ampliar a cobertura ... 18 a 25 anos: Sim/Não"
+        const jovemM = condSec.match(/18\s+a\s+25\s+anos[^:]*:\s*(Sim|N[aã]o)/i)
+                    || condSec.match(/25\s+anos[\s\S]{0,80}?(Sim|N[aã]o)/i);
         if (jovemM) fill('jovemCondutor', /sim/i.test(jovemM[1]) ? 'Sim' : 'Não');
       }
 
-      // CEP de pernoite: seção "INFORMAÇÕES DO SEU SEGURO"
-      const cepSecM = text.match(/INFORMA[ÇC][ÕO]ES\s+DO\s+SEU\s+SEGURO[\s\S]{0,600}?CEP[:\s]+(\d{5}-?\d{3})/i)
-                   || text.match(/CEP[:\s]+(\d{5}-?\d{3})/i);
+      // CEP de pernoite: busca \d{5}-\d{3} em qualquer parte do texto
+      // (pdf.js pode não preservar a seção exata)
+      const cepSecM = text.match(/CEP[:\s]+(\d{5}-\d{3})/i)
+                   || text.match(/Pernoite[\s\S]{0,100}?(\d{5}-\d{3})/i)
+                   || text.match(/\b(\d{5}-\d{3})\b/);
       if (cepSecM) fill('cep', cepSecM[1]);
 
       if (/Uso\s+Particular/i.test(text) || /Particular/i.test(text)) fill('uso', 'Particular');
