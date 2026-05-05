@@ -1034,6 +1034,8 @@
         showStatus('Analisando dados…');
         if (/yelum/i.test(fullText)) {
           parseYelum(fullText);
+        } else if (/allianz/i.test(fullText)) {
+          parseAllianz(fullText);
         } else {
           parseTokioMarine(fullText);
         }
@@ -1685,6 +1687,245 @@
       if (r6) {
         fill('debitoParcelas', '6');
         fill('debitoValor', 'R$ ' + (r6[1] || r6[0]));
+      }
+
+      toggleScreen('form');
+    }
+
+
+    // ── Parser Allianz Seguros ────────────────────────────────────
+    function parseAllianz(text) {
+      window._debugText = text;
+
+      function fill(id, value) {
+        if (!value) return;
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.tagName === 'SELECT') {
+          const v = value.toLowerCase();
+          for (const opt of el.options) {
+            if (opt.value && (opt.value.toLowerCase().startsWith(v.slice(0, 5)) ||
+                v.startsWith(opt.value.toLowerCase().slice(0, 5)))) {
+              el.value = opt.value; return;
+            }
+          }
+        } else { el.value = value; }
+      }
+      function check(id, val) {
+        const el = document.getElementById(id);
+        if (el) el.checked = !!val;
+      }
+      function toISO(s) {
+        const m = (s || '').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+        return m ? `${m[3]}-${m[2]}-${m[1]}` : '';
+      }
+
+      // ── IDENTIFICAÇÃO ─────────────────────────────────────────────
+      fill('seguradora', 'Allianz');
+
+      const numCotM = text.match(/N[ºo°]\s*Cota[çc][aã]o[:\s]+(\d+)/i);
+      if (numCotM) fill('numeroCotacao', numCotM[1]);
+
+      // "das 24H de DD/MM/AAAA às 24H de DD/MM/AAAA"
+      const vigM = text.match(/das\s+24H?\s+de\s+(\d{2}\/\d{2}\/\d{4})[\s\S]{0,30}?24H?\s+de\s+(\d{2}\/\d{2}\/\d{4})/i)
+                || text.match(/(\d{2}\/\d{2}\/\d{4})\s+[àa]\s+(\d{2}\/\d{2}\/\d{4})/);
+      if (vigM) {
+        fill('vigenciaInicio', toISO(vigM[1]));
+        fill('vigenciaTermino', toISO(vigM[2]));
+      }
+
+      // "Garantimos as condições desta cotação até DD/MM/AAAA"
+      const validM = text.match(/Garantimos[\s\S]{0,100}?at[eé]\s+(\d{2}\/\d{2}\/\d{4})/i);
+      if (validM) fill('validadeCotacao', toISO(validM[1]));
+
+      // ── SEGURADO ──────────────────────────────────────────────────
+      // "Nome: BEATRIZ DE CASTRO MARINI" — seção SUAS INFORMAÇÕES
+      const nomeM = text.match(/Nome:\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ\s]{3,60?})(?=\s{2,}|\n|CPF|Data)/);
+      if (nomeM) {
+        const nome = nomeM[1].trim();
+        fill('nome', nome);
+        fill('condutorNome', nome);
+      }
+
+      const cpfM = text.match(/CPF[:\s]+(\d{3}\.\d{3}\.\d{3}[-–]\d{2})/);
+      if (cpfM) { fill('cpf', cpfM[1]); fill('condutorCpf', cpfM[1]); }
+
+      const nascM = text.match(/(?:Nascimento|Nasc\.?)[:\s]+(\d{2}\/\d{2}\/\d{4})/i);
+      if (nascM) { fill('dataNasc', toISO(nascM[1])); fill('condutorDataNasc', toISO(nascM[1])); }
+
+      if (/Uso\s+Particular/i.test(text) || /Particular/i.test(text)) fill('uso', 'Particular');
+
+      // ── VEÍCULO ───────────────────────────────────────────────────
+      const veicM = text.match(/Ve[íi]culo:\s+(.+?)(?=\s{2,}|\n|Ano\/)/i);
+      if (veicM) fill('modelo', veicM[1].trim());
+
+      const anoM = text.match(/Ano\/Modelo:\s+(\d{4})/i);
+      if (anoM) fill('ano', anoM[1]);
+
+      const placaM = text.match(/Placa:\s+([A-Z]{3}\d[A-Z0-9]\d{2})/i)
+                  || text.match(/\b([A-Z]{3}\d[A-Z][0-9]{2})\b/)
+                  || text.match(/\b([A-Z]{3}\d{4})\b/);
+      if (placaM) fill('placa', placaM[1].toUpperCase());
+
+      // ── PRÊMIO ────────────────────────────────────────────────────
+      const precoTotalM = text.match(/Pre[çc]o\s+Total[\s\S]{0,80}?([\d.]+,\d{2})/i);
+      if (precoTotalM) {
+        fill('premioTotal', 'R$ ' + precoTotalM[1]);
+        fill('aVista', 'R$ ' + precoTotalM[1]);
+      }
+      const premioNum = precoTotalM
+        ? parseFloat(precoTotalM[1].replace(/\./g, '').replace(',', '.'))
+        : 0;
+
+      // ── FRANQUIA ─────────────────────────────────────────────────
+      const franqM = text.match(/FRANQUIA[\s\S]{0,300}?Valor\s*\(R\$\)[\s\S]{0,100}?([\d.]+,\d{2})/i)
+                  || text.match(/FRANQUIA[\s\S]{0,300}?([\d.]+,\d{2})/i);
+      if (franqM) fill('franquiaValor', 'R$ ' + franqM[1]);
+
+      // ── COBERTURAS ESSENCIAIS ─────────────────────────────────────
+      if (/Casco[\s\S]{0,40}?Compreensiva/i.test(text)) {
+        check('chkColisao', true);
+        fill('lblColisao', 'Casco - Básica Compreensiva');
+        fill('valColisao', '100% FIPE');
+      }
+
+      function lmiCob(re) {
+        const m = text.match(re);
+        return m ? m[1].trim() : null;
+      }
+
+      const rcMatLmi = lmiCob(/RCF[^R\n]{0,60}?Danos\s+Materiais[\s\S]{0,80}?([\d.]+,\d{2})/i);
+      if (rcMatLmi) {
+        check('chkDanosMat', true);
+        fill('lblDanosMat', 'RC Danos Materiais');
+        fill('valDanosMat', 'R$ ' + rcMatLmi);
+      }
+
+      const rcCorpLmi = lmiCob(/RCF[^R\n]{0,60}?Danos\s+Corporais[\s\S]{0,80}?([\d.]+,\d{2})/i);
+      if (rcCorpLmi) {
+        check('chkDanosCorp', true);
+        fill('lblDanosCorp', 'RC Danos Corporais');
+        fill('valDanosCorp', 'R$ ' + rcCorpLmi);
+      }
+
+      const rcMorLmi = lmiCob(/RCF[^R\n]{0,60}?Danos\s+Morais[\s\S]{0,80}?([\d.]+,\d{2})/i);
+      if (rcMorLmi) {
+        check('chkDanosMorais', true);
+        fill('lblDanosMorais', 'RC Danos Morais e Estéticos');
+        fill('valDanosMorais', 'R$ ' + rcMorLmi);
+      }
+
+      const appMorteLmi = lmiCob(/APP[^A\n]{0,30}?Morte[\s\S]{0,60}?([\d.]+,\d{2})/i);
+      const appInvLmi   = lmiCob(/APP[^A\n]{0,30}?Invalidez[\s\S]{0,60}?([\d.]+,\d{2})/i);
+      if (appMorteLmi || appInvLmi) {
+        check('chkApp', true);
+        fill('lblApp', 'APP — Morte/Invalidez Permanente');
+        fill('valApp', 'R$ ' + (appMorteLmi || appInvLmi));
+      }
+
+      const cvMatLmi = lmiCob(/Carta\s+Verde[\s\S]{0,40}?Danos\s+Materiais[\s\S]{0,80}?([\d.]+,\d{2})/i);
+      if (cvMatLmi) {
+        check('chkCartaVerdeMat', true);
+        fill('lblCartaVerdeMat', 'Carta Verde — Danos Materiais');
+        fill('valCartaVerdeMat', 'US$ ' + cvMatLmi);
+      }
+
+      const cvCorpLmi = lmiCob(/Carta\s+Verde[\s\S]{0,40}?Danos\s+Corporais[\s\S]{0,80}?([\d.]+,\d{2})/i);
+      if (cvCorpLmi) {
+        check('chkCartaVerdeCorp', true);
+        fill('lblCartaVerdeCorp', 'Carta Verde — Danos Corporais');
+        fill('valCartaVerdeCorp', 'US$ ' + cvCorpLmi);
+      }
+
+      // ── ASSISTÊNCIA 24H ──────────────────────────────────────────
+      // "Assistência 24 hs   Plano 2"
+      const assistM = text.match(/Assist[eê]ncia\s+24\s*h[s]?[\s\S]{0,80}?(Plano\s+\d)/i);
+      if (assistM) {
+        check('chkAssistencia', true);
+        const num = (assistM[1].match(/\d/) || ['2'])[0];
+        const mapaAssist = {
+          '1': ['200',       'Assistência 24h — Plano 1 (Reboque 200km)'],
+          '2': ['500',       'Assistência 24h — Plano 2 (Reboque 500km)'],
+          '3': ['Ilimitado', 'Assistência 24h — Plano 3 (Reboque Ilimitado)'],
+        };
+        const [km, lbl] = mapaAssist[num] || mapaAssist['2'];
+        fill('assistenciaKm', km);
+        fill('lblAssistencia', lbl);
+      }
+
+      // ── VIDROS ────────────────────────────────────────────────────
+      // "Vidros, lanternas, faróis e retrovisores   Plano 3"
+      const vidrosM = text.match(/Vidros[,\s]+lanternas[\s\S]{0,100}?(Plano\s+\d)/i);
+      if (vidrosM) {
+        check('chkVidros', true);
+        const num = (vidrosM[1].match(/\d/) || ['2'])[0];
+        const mapaVidros = {
+          '1': 'Vidros Completos — Plano 1 (Vidros)',
+          '2': 'Vidros Completos — Plano 2 (Vidros, Faróis, Lanternas e Retrovisores)',
+          '3': 'Vidros Completos — Plano 3 (Plano 2 + Pequenos Reparos + Rodas/Pneus/Suspensão)',
+          '4': 'Vidros Completos — Plano 4 (Plano 3 + Vidros com Logomarca)',
+        };
+        fill('lblVidros', mapaVidros[num] || mapaVidros['2']);
+      }
+
+      // ── CARRO RESERVA ─────────────────────────────────────────────
+      const crSecM = text.match(/CARRO\s+RESERVA[\s\S]{0,600}?(?=OUTRAS FORMAS|ASSIST|$)/i);
+      if (crSecM) {
+        const crSec = crSecM[0];
+        const diasM = crSec.match(/(\d+)\s*[Dd]i[aá]/);
+        const dias  = diasM ? diasM[1] : '';
+        const tipo  = /Superior/i.test(crSec)  ? 'Superior'
+                    : /Intermedi/i.test(crSec) ? 'Intermediário'
+                    : /B[aá]sico/i.test(crSec) ? 'Básico' : '';
+        if (tipo) {
+          check('chkCarroReserva', true);
+          fill('lblCarroReserva', `Carro Reserva ${tipo}` + (dias ? ` — ${dias} dias` : ''));
+          if (dias) fill('carroReservaDias', dias);
+        }
+      }
+
+      // ── PAGAMENTO ─────────────────────────────────────────────────
+      function maiorSemJurosAllianz(bloco, max) {
+        let maxN = 0, parcelas = '', valor = '';
+        // "01 sem juros 4.602,00" ou "10 sem juros 460,20"
+        for (const m of bloco.matchAll(/(\d{1,2})\s+(?:sem\s+juros|0[,.]00%)\s+([\d.]+,\d{2})/gi)) {
+          const n = parseInt(m[1]);
+          if (n > maxN && n <= max) { maxN = n; parcelas = String(n); valor = m[2]; }
+        }
+        return { parcelas, valor };
+      }
+      function valCalc(n) {
+        return premioNum > 0 ? (premioNum / n).toFixed(2).replace('.', ',') : '';
+      }
+
+      const boletoSecM = text.match(/Boleto\s+Banc[aá]rio[\s\S]{0,600}?(?=D[eé]bito\s+em|Cart[aã]o|$)/i);
+      if (boletoSecM) {
+        const { parcelas, valor } = maiorSemJurosAllianz(boletoSecM[0], 10);
+        fill('boletoParcelas', parcelas || '4');
+        fill('boletoValor', valor || valCalc(4));
+      } else if (premioNum > 0) {
+        fill('boletoParcelas', '4');
+        fill('boletoValor', valCalc(4));
+      }
+
+      const debitoSecM = text.match(/D[eé]bito\s+em\s+Conta[\s\S]{0,600}?(?=Cart[aã]o\s+de|Boleto|$)/i);
+      if (debitoSecM) {
+        const { parcelas, valor } = maiorSemJurosAllianz(debitoSecM[0], 10);
+        fill('debitoParcelas', parcelas || '10');
+        fill('debitoValor', valor || valCalc(10));
+      } else if (premioNum > 0) {
+        fill('debitoParcelas', '10');
+        fill('debitoValor', valCalc(10));
+      }
+
+      const cartaoSecM = text.match(/Cart[aã]o\s+de\s+Cr[eé]dito[\s\S]{0,600}?(?=Boleto|D[eé]bito|$)/i);
+      if (cartaoSecM) {
+        const { parcelas, valor } = maiorSemJurosAllianz(cartaoSecM[0], 12);
+        fill('cartaoParcelas', parcelas || '10');
+        fill('cartaoValor', valor || valCalc(10));
+      } else if (premioNum > 0) {
+        fill('cartaoParcelas', '10');
+        fill('cartaoValor', valCalc(10));
       }
 
       toggleScreen('form');
