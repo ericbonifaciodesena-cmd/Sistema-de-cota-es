@@ -1843,9 +1843,9 @@
         check('chkAssistencia', true);
         const num = (assistM[1].match(/\d/) || ['2'])[0];
         const mapaAssist = {
-          '1': ['200',       'Assistência 24h Plano 1 (Reboque até 200km)'],
-          '2': ['500',       'Assistência 24h Plano 2 (Reboque até 500km)'],
-          '3': ['Ilimitado', 'Assistência 24h Plano 3 (Reboque Ilimitado)'],
+          '1': ['200',       'Assistência 24h 200km'],
+          '2': ['500',       'Assistência 24h 500km'],
+          '3': ['Ilimitado', 'Assistência 24h Ilimitado'],
         };
         const [km, lbl] = mapaAssist[num] || mapaAssist['2'];
         fill('assistenciaKm', km);
@@ -1869,20 +1869,20 @@
         check('chkVidros', true);
         const num = (vidrosM[1].match(/\d/) || ['2'])[0];
         const mapaVidros = {
-          '1': 'Vidros - Plano 1',
-          '2': 'Vidros Completos - Plano 2',
-          '3': 'Vidros Completos - Plano 3',
-          '4': 'Vidros Completos - Plano 4 (com logomarca)',
+          '1': 'Vidros',
+          '2': 'Vidros, faróis, lanternas e retrovisores',
+          '3': 'Vidros, faróis, lanternas e retrovisores',
+          '4': 'Vidros, faróis, lanternas e retrovisores',
         };
         fill('lblVidros', mapaVidros[num] || mapaVidros['2']);
-        // Plano 3 e 4 incluem Pequenos Reparos e Proteção Rodas/Pneus
+        // Plano 3 e 4 incluem Pequenos Reparos e Proteção de Rodas, Pneus e Suspensão
         if (num >= '3') {
           check('chkPequenosReparos', true);
-          fill('lblPequenosReparos', 'Pequenos Reparos (incluso no Plano de Vidros)');
+          fill('lblPequenosReparos', 'Pequenos Reparos');
           check('chkRodas', true);
-          fill('lblRodas', 'Proteção Pneu e Roda (incluso no Plano de Vidros)');
+          fill('lblRodas', 'Proteção de Rodas, Pneus e Suspensão');
         }
-        // Plano 4 inclui logomarca
+        // Plano 4 adiciona logomarca nos vidros
         if (num === '4') check('chkLogomarca', true);
       }
 
