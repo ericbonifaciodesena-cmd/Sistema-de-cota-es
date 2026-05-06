@@ -2230,6 +2230,13 @@
         fill('valApp', 'R$ ' + appM[1]);
       }
 
+      const despMedM = text.match(/DESP\.?\s*MEDICAS?\s*HOSPITALARES?\s+([\d\.,]+)/i);
+      if (despMedM) {
+        check('chkDespMed', true);
+        fill('lblDespMed', 'Despesas Médicas Hospitalares');
+        fill('valDespMed', 'R$ ' + despMedM[1]);
+      }
+
       const cvMatM = text.match(/CARTA\s+VERDE\s*-\s*DANOS\s+MATERIAIS\s+U\$\s*([\d\.,]+)/i);
       if (cvMatM) {
         check('chkCartaVerdeMat', true);
