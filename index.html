@@ -2361,30 +2361,28 @@
       if (jovemM) fill('jovemCondutor', /sim/i.test(jovemM[1]) ? 'Sim' : 'Não');
 
       // ── CONDUTOR PRINCIPAL ────────────────────────────────────────
+      // Títulos vêm primeiro, valores em sequência depois
+      // "Características do principal condutor  Nome: Estado Civil: CPF/CNPJ: Sexo: Data Nasc.:
+      //  ELIANA DE SOUZA MANES 009.094.029-65 02/08/1983 Feminino Casado/União Estável"
       const segPrinc = /Segurado\s+[eé]\s+o\s+principal\s+condutor\s*\?\s*Sim/i.test(text);
       if (segPrinc) {
         const ecM = text.match(/Estado\s+Civil[:\s]*([^\n\r]+)/i);
         if (ecM) fill('estadoCivil', /casado|uni[aã]o/i.test(ecM[1]) ? 'Casado' : ecM[1].trim());
       } else {
-        const condBlock = text.match(/Caracter[ií]sticas\s+do\s+principal\s+condutor\s+([\s\S]+?)(?=Question[aá]rio\s+de\s+Avalia[cç][aã]o|PAGAMENTO|\n\n)/i);
+        const condBlock = text.match(
+          /Caracter[ií]sticas\s+do\s+principal\s+condutor\s+Nome:\s+Estado\s+Civil:\s+CPF\/CNPJ:\s+Sexo:\s+Data\s+Nasc\.:\s+([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+([\d]{3}\.[\d]{3}\.[\d]{3}-[\d]{2})\s+([\d]{2}\/[\d]{2}\/[\d]{4})\s+\w+\s+([^\d\n\r]+?)(?=\s*\d|\s*$|\n)/i
+        );
         if (condBlock) {
-          const bloco = condBlock[1];
-          const nomeC = bloco.match(/Nome:\s+([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)(?=\s+CPF)/i);
-          const cpfC  = bloco.match(/CPF\/CNPJ:\s+([\d\.\-]+)/i);
-          const nascC = bloco.match(/Data\s+Nasc\.:\s+([\d\/]+)/i);
-          const ecC   = bloco.match(/Estado\s+Civil:\s+([^\n\r]+)/i);
-          if (nomeC) fill('condutorNome', nomeC[1].trim());
-          if (cpfC)  fill('condutorCpf',  cpfC[1].trim());
-          if (nascC) fill('condutorDataNasc', toISO(nascC[1]));
-          if (ecC) {
-            const ec = ecC[1].trim();
-            const ecNorm = /casado|uni[aã]o/i.test(ec) ? 'Casado'
-                         : /solteiro/i.test(ec)        ? 'Solteiro'
-                         : /divorciado/i.test(ec)      ? 'Divorciado'
-                         : /vi[uú]vo/i.test(ec)        ? 'Viúvo'
-                         : ec;
-            fill('condutorEstadoCivil', ecNorm);
-          }
+          fill('condutorNome', condBlock[1].trim());
+          fill('condutorCpf',  condBlock[2].trim());
+          fill('condutorDataNasc', toISO(condBlock[3]));
+          const ec = condBlock[4].trim();
+          fill('condutorEstadoCivil',
+            /casado|uni[aã]o/i.test(ec)  ? 'Casado'    :
+            /solteiro/i.test(ec)         ? 'Solteiro'  :
+            /divorciado/i.test(ec)       ? 'Divorciado':
+            /vi[uú]vo/i.test(ec)         ? 'Viúvo'     : ec
+          );
         }
       }
 
@@ -2414,19 +2412,29 @@
         fill('valColisao', '100% FIPE');
       }
 
-      const dmMatch      = text.match(/D\.M\.:\s+RCF[\s\S]{0,50}?([\d\.,]{6,})/i) || text.match(/D\.M\.:\s+([\d\.,]+)/i);
-      const dcMatch      = text.match(/D\.C\.:\s+([\d\.,]+)/i);
-      const dmorMatch    = text.match(/D\.\s*Morais\.:\s+([\d\.,]+)/i);
-      const morteMatch   = text.match(/Morte\s+p\/\s*Passageiro:\s+([\d\.,]+)/i);
-      const invalidMatch = text.match(/Invalidez\s+p\/\s*Passageiro:\s+([\d\.,]+)/i);
-
-      if (dmMatch)   { check('chkDanosMat',   true); fill('lblDanosMat',   'Danos Materiais');          fill('valDanosMat',   'R$ ' + dmMatch[1]);   }
-      if (dcMatch)   { check('chkDanosCorp',  true); fill('lblDanosCorp',  'Danos Corporais');          fill('valDanosCorp',  'R$ ' + dcMatch[1]);   }
-      if (dmorMatch) { check('chkDanosMorais',true); fill('lblDanosMorais','Danos Morais e Estéticos'); fill('valDanosMorais','R$ ' + dmorMatch[1]); }
-      if (morteMatch || invalidMatch) {
-        check('chkApp', true);
-        fill('lblApp', 'APP — Morte/Invalidez Permanente');
-        fill('valApp', 'R$ ' + (morteMatch?.[1] || invalidMatch?.[1]));
+      // Títulos em ordem: D.M., D.C., G.U., D.Morais, Invalidez, DespMed, Morte
+      // Sequência de valores após 'Cobertura não contratada':
+      //   [0-4]=zeros iniciais, [5]=Acessórios, [6]=Carroceria, [7]=Equipamentos,
+      //   [8]=DM, [9]=DC, [10]=GU, [11]=DMorais, [12]=Invalidez, [13]=Morte, [14]=DespMed
+      const lmiBlock = text.match(/Cobertura\s+n[aã]o\s+contratada\s+([\d\s\.,]+?)(?=Assist(?:\.|\s+Funeral)|COBERTURAS\s+ADICIONAIS|CL[AÁ]USULAS)/i);
+      if (lmiBlock) {
+        const nums = lmiBlock[1].match(/[\d\.]+,\d{2}/g);
+        if (nums && nums.length >= 14) {
+          const toV = v => parseFloat(v.replace(/\./g,'').replace(',','.'));
+          const dm     = nums[8];
+          const dc     = nums[9];
+          const dmorais= nums[11];
+          const inv    = nums[12];
+          const morte  = nums[13];
+          if (toV(dm)      > 0) { check('chkDanosMat',   true); fill('lblDanosMat',   'Danos Materiais');          fill('valDanosMat',   'R$ ' + dm);      }
+          if (toV(dc)      > 0) { check('chkDanosCorp',  true); fill('lblDanosCorp',  'Danos Corporais');          fill('valDanosCorp',  'R$ ' + dc);      }
+          if (toV(dmorais) > 0) { check('chkDanosMorais',true); fill('lblDanosMorais','Danos Morais e Estéticos'); fill('valDanosMorais','R$ ' + dmorais); }
+          if (toV(inv) > 0 || toV(morte) > 0) {
+            check('chkApp', true);
+            fill('lblApp', 'APP — Morte/Invalidez Permanente');
+            fill('valApp', 'R$ ' + (toV(morte) > 0 ? morte : inv));
+          }
+        }
       }
 
       if (/\(006\)\s*Extens[aã]o\s+per[ií]metro\s+Mercosul/i.test(text)) {
