@@ -2175,10 +2175,9 @@
         : 0;
 
       // ── FRANQUIA PRINCIPAL ────────────────────────────────────────
-      // Coluna "Franquia" na tabela HDI: valor logo abaixo do cabeçalho
-      const franqM = text.match(/Franquia\s*\n?\s*([\d\.]+,\d{2})/i)
-                  || text.match(/FACULTATIVA[^\d\n]{0,30}([\d\.]+,\d{2})/i)
-                  || text.match(/Franquia[^\d\n]{0,60}([\d\.]+,\d{2})/i);
+      // Tabela HDI: "Valor Determinado" ou "Valor de Mercado Referenciado"
+      // → coluna "Franquia" → primeiro valor numérico abaixo dessa coluna
+      const franqM = text.match(/Valor\s+(?:Determinado|de\s+Mercado\s+Referenciado)[\s\S]{0,300}?Franquia[\s\S]{0,80}?([\d\.]+,\d{2})/i);
       if (franqM) fill('franquiaValor', 'R$ ' + franqM[1]);
 
       // ── COBERTURAS ESSENCIAIS ─────────────────────────────────────
