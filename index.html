@@ -1599,7 +1599,7 @@
         fill('lblAssistencia', 'Assistência 24h — Superior (Pane 1.000km | Colisão Ilimitado)');
       } else if (/ASSIST[\s\S]{0,150}?INTERMED/i.test(text)) {
         check('chkAssistencia', true);
-        fill('assistenciaKm', '1000');
+        fill('assistenciaKm', '500');
         fill('lblAssistencia', 'Assistência 24h — Intermediária (Pane 500km | Colisão Ilimitado)');
       } else if (/ASSIST[\s\S]{0,150}?B[AÁ]SIC/i.test(text)) {
         check('chkAssistencia', true);
@@ -1620,10 +1620,15 @@
         return m ? m[1].replace(/\s+/g, ' ').trim() : '';
       }
 
+      // Remove traço e texto após os dias (ex: "15 DIAS — BASICO" → "15 DIAS")
+      function crLabel(desc) {
+        return desc.replace(/\s*[-–—][\s\S]*/, '').trim();
+      }
+
       // Carro Reserva a Terceiros
       if (/CARRO\s+RESERVA\s+TERCEIROS/i.test(text)) {
         check('chkCarroReservaTerceiros', true);
-        const desc = descCob(/CARRO\s+RESERVA\s+TERCEIROS\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i);
+        const desc = crLabel(descCob(/CARRO\s+RESERVA\s+TERCEIROS\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i));
         fill('lblCarroReservaTerceiros', 'Carro Reserva a Terceiros' + (desc ? ' — ' + desc : ''));
         const diasM = desc.match(/(\d+)\s+DIAS/i);
         if (diasM) fill('carroReservaTerceirosDias', diasM[1]);
@@ -1632,7 +1637,7 @@
       // Carro Reserva Indenização Integral
       if (/CARRO\s+RESERVA\s+INDENIZA/i.test(text)) {
         check('chkCarroReservaIntegral', true);
-        const desc = descCob(/CARRO\s+RESERVA\s+INDENIZA\S*(?:\s+INTEGRAL)?\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i);
+        const desc = crLabel(descCob(/CARRO\s+RESERVA\s+INDENIZA\S*(?:\s+INTEGRAL)?\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i));
         fill('lblCarroReservaIntegral', 'Carro Reserva Indenização Integral' + (desc ? ' — ' + desc : ''));
         const diasM = desc.match(/(\d+)\s+DIAS/i);
         if (diasM) fill('carroReservaIntegralDias', diasM[1]);
@@ -1640,7 +1645,7 @@
       // Carro Reserva ou Desc.Frq
       else if (/CARRO\s+RESERVA\s+OU\s+DESC/i.test(text)) {
         check('chkCarroReserva', true);
-        const desc = descCob(/CARRO\s+RESERVA\s+OU\s+DESC\.?\s*FRQ\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i);
+        const desc = crLabel(descCob(/CARRO\s+RESERVA\s+OU\s+DESC\.?\s*FRQ\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i));
         fill('lblCarroReserva', 'Carro Reserva ou Desc.Frq' + (desc ? ' — ' + desc : ''));
         const diasM = desc.match(/(\d+)\s+DIAS/i);
         if (diasM) fill('carroReservaDias', diasM[1]);
@@ -1648,7 +1653,7 @@
       // Carro Reserva básico (exceto TERCEIROS e INDENIZA)
       else if (/CARRO\s+RESERVA(?!\s+TERCEIROS|\s+INDENIZA)/i.test(text)) {
         check('chkCarroReserva', true);
-        const desc = descCob(/CARRO\s+RESERVA\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i);
+        const desc = crLabel(descCob(/CARRO\s+RESERVA\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i));
         fill('lblCarroReserva', 'Carro Reserva' + (desc ? ' — ' + desc : ''));
         const diasM = desc.match(/(\d+)\s+DIAS/i);
         if (diasM) fill('carroReservaDias', diasM[1]);
@@ -1667,12 +1672,21 @@
       }
 
       // Franquias de vidros: tudo após "VIDROS INTERMEDIARIO (Rede Referenciada) -"
+      const franqItensYelum = [];
       const vidrosFqM = text.match(/VIDROS[^\n]*\(Rede Referenciada\)\s*-\s*([\s\S]+?)(?=\s*-\s*Cobertura\s+LED|\s*ASSISTÊN|\s*ATENÇÃO|DADOS DO PERFIL|Yelum Seguros)/i);
       if (vidrosFqM) {
         const raw = vidrosFqM[1].replace(/^Franquia\s*/i, '').trim();
-        const itens = raw.split(/\s*\/\s*/).map(s => s.trim()).filter(Boolean);
-        fill('franquias', itens.join(' | '));
+        raw.split(/\s*\/\s*/).map(s => s.trim()).filter(Boolean).forEach(i => franqItensYelum.push(i));
       }
+      // Franquia de Pequenos Reparos
+      const franqPeqM = text.match(/PROTECAO\s+PEQUENOS\s+REPAROS[\s\S]{0,300}?(?:Franquia|Fra\.)\s*R\$\s*([\d.]+,\d{2})/i)
+                     || text.match(/PEQUENOS\s+REPAROS[\s\S]{0,200}?-\s*(?:Franquia|R\$)\s*([\d.]+,\d{2})/i);
+      if (franqPeqM) franqItensYelum.push('Pequenos Reparos: R$ ' + franqPeqM[1]);
+      // Franquia de Proteção de Rodas, Pneus e Suspensão
+      const franqRodM = text.match(/PROTECAO\s+DE\s+RODA\s+E\s+PNEU[\s\S]{0,300}?(?:Franquia|Fra\.)\s*R\$\s*([\d.]+,\d{2})/i)
+                     || text.match(/RODA\s+E\s+PNEU[\s\S]{0,200}?-\s*(?:Franquia|R\$)\s*([\d.]+,\d{2})/i);
+      if (franqRodM) franqItensYelum.push('Proteção de Rodas, Pneus e Suspensão: R$ ' + franqRodM[1]);
+      if (franqItensYelum.length) fill('franquias', franqItensYelum.join(' | '));
 
       // ── PRÊMIO E PAGAMENTO ────────────────────────────────────────
       const avistaM = text.match(/À vista\s+([\d.]+,\d{2})/i);
