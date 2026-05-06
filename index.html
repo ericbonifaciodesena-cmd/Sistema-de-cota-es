@@ -2333,7 +2333,8 @@
       fill('seguradora', 'Bradesco');
       const cotM   = text.match(/Estudo[:\s]+([\w\/]+)/i);
       if (cotM)  fill('numeroCotacao', cotM[1]);
-      const validM = text.match(/C[aá]lculo v[aá]lido at[eé]:\s*([\d\/]+)/i);
+      // Validade: títulos separados dos valores → data aparece após 'Data do 1º Cálculo:'
+      const validM = text.match(/C[aá]lculo\s+v[aá]lido\s+at[eé]:[\s\S]+?Data\s+do\s+1[oºª°]\s+C[aá]lculo:\s*([\d\/]+)/i);
       if (validM) fill('validadeCotacao', toISO(validM[1]));
 
       // ── VIGÊNCIA ──────────────────────────────────────────────────
@@ -2387,23 +2388,26 @@
       }
 
       // ── VEÍCULO ───────────────────────────────────────────────────
-      const veicBlock = text.match(/Carroceria:\s+([\s\S]+?)(?=CL[AÁ]USULAS)/i);
+      // Veículo: bloco após 'Carroceria:' até 'CLÁUSULAS'
+      // Sequência de valores: modelo marca uso equip anofab cod anomod chassi placa
+      const veicBlock = text.match(/Carroceria:\s+([A-Za-z][\s\S]+?)(?=CL[AÁ]USULAS)/i);
       if (veicBlock) {
         const vb = veicBlock[1].trim();
         const marcas = ['RENAULT','TOYOTA','HONDA','VOLKSWAGEN','CHEVROLET','FIAT','FORD','NISSAN','JEEP','HYUNDAI','KIA','PEUGEOT','MITSUBISHI','MERCEDES','BMW','CITROEN','VOLVO','AUDI'];
         for (const marca of marcas) {
           if (vb.includes(marca)) {
-            const modelo = vb.substring(0, vb.indexOf(marca)).trim();
-            fill('modelo', marca + ' ' + modelo);
+            fill('modelo', marca + ' ' + vb.substring(0, vb.indexOf(marca)).trim());
             break;
           }
         }
+        // Segundo ano de 4 dígitos = ano modelo
+        const anosVb = vb.match(/\b(20\d{2}|19\d{2})\b/g);
+        if (anosVb && anosVb.length >= 2) fill('ano', anosVb[1]);
+        else if (anosVb && anosVb.length === 1) fill('ano', anosVb[0]);
+        // Placa: ABC1234 ou ABC1D23
+        const placaVb = vb.match(/\b([A-Z]{3}\d[A-Z0-9]\d{2})\b/);
+        if (placaVb) fill('placa', placaVb[1]);
       }
-      const anoM = text.match(/Ano\s+Mod\.:\s+(\d{4})/i);
-      if (anoM) fill('ano', anoM[1]);
-      const placaM = text.match(/([A-Z]{3}\d[A-Z0-9]\d{2})\s+N[aã]o\s+\d{7}/i)
-                  || text.match(/Placa[:\s]*([A-Z]{3}\d[A-Z0-9]\d{2})/i);
-      if (placaM) fill('placa', placaM[1]);
 
       // ── COBERTURAS ESSENCIAIS ─────────────────────────────────────
       if (/Cobertura\s+Compreensiva|Valor\s+de\s+Mercado\s+Referenciado/i.test(text)) {
@@ -2418,7 +2422,7 @@
       //   [8]=DM, [9]=DC, [10]=GU, [11]=DMorais, [12]=Invalidez, [13]=Morte, [14]=DespMed
       const lmiBlock = text.match(/Cobertura\s+n[aã]o\s+contratada\s+([\d\s\.,]+?)(?=Assist(?:\.|\s+Funeral)|COBERTURAS\s+ADICIONAIS|CL[AÁ]USULAS)/i);
       if (lmiBlock) {
-        const nums = lmiBlock[1].match(/[\d\.]+,\d{2}/g);
+        const nums = lmiBlock[1].match(/[\d]+[\d\.,]*/g);
         if (nums && nums.length >= 14) {
           const toV = v => parseFloat(v.replace(/\./g,'').replace(',','.'));
           const dm     = nums[8];
