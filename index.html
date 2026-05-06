@@ -799,6 +799,19 @@
         </div>
 
         <div class="cobertura-item">
+          <input type="checkbox" class="cobertura-check" id="chkDespMed" name="chkDespMed">
+          <div>
+            <div class="cobertura-fields">
+              <input type="text" class="cobertura-label-input" id="lblDespMed" name="lblDespMed"
+                value="Despesas Médicas Hospitalares">
+              <input type="text" class="cobertura-valor-input" id="valDespMed" name="valDespMed"
+                value="R$ 0,00">
+            </div>
+            <div class="cobertura-hint">Marque para incluir no PDF</div>
+          </div>
+        </div>
+
+        <div class="cobertura-item">
           <input type="checkbox" class="cobertura-check" id="chkCartaVerdeMat" name="chkCartaVerdeMat">
           <div>
             <div class="cobertura-fields">
@@ -2488,6 +2501,7 @@
         { chk: 'chkDanosMorais',   lbl: 'lblDanosMorais',   val: 'valDanosMorais' },
         { chk: 'chkApp',           lbl: 'lblApp',           val: 'valApp' },
         { chk: 'chkDefesa',        lbl: 'lblDefesa',        val: 'valDefesa' },
+        { chk: 'chkDespMed',       lbl: 'lblDespMed',       val: 'valDespMed' },
         { chk: 'chkCartaVerdeMat', lbl: 'lblCartaVerdeMat', val: 'valCartaVerdeMat' },
         { chk: 'chkCartaVerdeCorp',lbl: 'lblCartaVerdeCorp',val: 'valCartaVerdeCorp' },
       ].filter(c => chk(c.chk));
