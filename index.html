@@ -2175,14 +2175,11 @@
         : 0;
 
       // ── FRANQUIA PRINCIPAL ────────────────────────────────────────
-      // Linha CASCO: "CASCO 100,00%FIPE <v1> <v2> <v3> <franquia>"
+      // Linha CASCO: "CASCO   100,00%   FIPE   v1   v2   v3   franquia"
       // O 4º valor numérico da linha é a franquia de indenização parcial.
-      const linhaCasco = text.match(/CASCO\s+100,00%FIPE\s+([\d\.,]+)\s+([\d\.,]+)\s+([\d\.,]+)\s+([\d\.,]+)/i);
+      const linhaCasco = text.match(/CASCO\s+100,00%\s+FIPE\s+([\d\.,]+)\s+([\d\.,]+)\s+([\d\.,]+)\s+([\d\.,]+)/i);
       if (linhaCasco) {
-        fill('franquiaValor', 'R$ ' + linhaCasco[4]);
-      } else {
-        const franqM = text.match(/CASCO\s+100,00%FIPE[\s\d\.,]+?([\d\.,]+)\s*\n/i);
-        if (franqM) fill('franquiaValor', 'R$ ' + franqM[1]);
+        document.getElementById('franquiaValor').value = 'R$ ' + linhaCasco[4];
       }
 
       // ── COBERTURAS ESSENCIAIS ─────────────────────────────────────
