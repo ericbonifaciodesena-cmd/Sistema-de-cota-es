@@ -2110,7 +2110,8 @@
       const validM = text.match(/COTA[ÇC][AÃ]O\s+V[AÁ]LIDA\s+AT[EÉ]\s*([\d\/]+)/i);
       if (validM) fill('validadeCotacao', toISO(validM[1]));
 
-      const vigM = text.match(/DAS\s+24HS\s+DO\s+DIA\s+([\d\/]+)\s+[AÀ]S\s+24HS\s+DO\s+DIA\s+([\d\/]+)/i);
+      // "DAS24HSDODIA 10/05/2026 ÀS24HSDODIA 10/05/2027"
+      const vigM = text.match(/DAS\s*24\s*HS\s*DO\s*DIA\s*([\d\/]+)\s*[AÀ]S\s*24\s*HS\s*DO\s*DIA\s*([\d\/]+)/i);
       if (vigM) { fill('vigenciaInicio', toISO(vigM[1])); fill('vigenciaTermino', toISO(vigM[2])); }
 
       // ── SEGURADO ──────────────────────────────────────────────────
@@ -2142,7 +2143,8 @@
         fill('condutorEstadoCivil', ec);
       }
 
-      const jovemM = text.match(/Cob\s+Demais\s+Condutores\s+Resid\s+entre\s+18[^N\n]*?(N[aã]o|Sim)/i);
+      // "Cob Demais Condutores Resid entre 18Até 25Anos ... Nao/Sim"
+      const jovemM = text.match(/18\s*At[eé]\s*25\s*Anos[\s\S]{0,120}?(N[aã]o|Sim)/i);
       if (jovemM) fill('jovemCondutor', /sim/i.test(jovemM[1]) ? 'Sim' : 'Não');
 
       const cepM = text.match(/CEP\s*Pernoite:\s*(\d{5})-?(\d{3})/i);
@@ -2173,9 +2175,11 @@
         : 0;
 
       // ── FRANQUIA PRINCIPAL ────────────────────────────────────────
-      // Linha CASCO: último valor numérico grande é a franquia
-      const cascoLine = text.match(/CASCO[\s\S]{0,200}?(\d[\d\.]+,\d{2})\s*(?:\n|$)/i);
-      if (cascoLine) fill('franquiaValor', 'R$ ' + cascoLine[1]);
+      // Coluna "Franquia" na tabela HDI: valor logo abaixo do cabeçalho
+      const franqM = text.match(/Franquia\s*\n?\s*([\d\.]+,\d{2})/i)
+                  || text.match(/FACULTATIVA[^\d\n]{0,30}([\d\.]+,\d{2})/i)
+                  || text.match(/Franquia[^\d\n]{0,60}([\d\.]+,\d{2})/i);
+      if (franqM) fill('franquiaValor', 'R$ ' + franqM[1]);
 
       // ── COBERTURAS ESSENCIAIS ─────────────────────────────────────
       if (/\bCASCO\b/i.test(text)) {
@@ -2263,38 +2267,12 @@
       }
 
       // ── PAGAMENTO ─────────────────────────────────────────────────
-      function maiorParcelaSJ(bloco, max) {
-        let maxN = 0, parc = '', val = '';
-        for (const m of bloco.matchAll(/(\d{1,2})\s*[xX]\s*([\d\.,]+)/g)) {
-          const n = parseInt(m[1]);
-          if (n > maxN && n <= max) { maxN = n; parc = String(n); val = m[2]; }
-        }
-        return { parc, val };
-      }
-      function valCalc(n) {
-        return premioNum > 0 ? (premioNum / n).toFixed(2).replace('.', ',') : '';
-      }
-
-      const cartaoIdx = text.search(/Cart[aã]o\s+de\s+Cr[eé]dito/i);
-      const debitoIdx = text.search(/D[eé]bito\s+Em\s+Conta/i);
-      const carneIdx  = text.search(/Carn[eê]/i);
-
-      if (cartaoIdx >= 0) {
-        const end = debitoIdx > cartaoIdx ? debitoIdx : carneIdx > cartaoIdx ? carneIdx : cartaoIdx + 600;
-        const { parc, val } = maiorParcelaSJ(text.slice(cartaoIdx, end), 12);
-        fill('cartaoParcelas', parc || '12');
-        fill('cartaoValor', val || valCalc(12));
-      }
-      if (debitoIdx >= 0) {
-        const end = carneIdx > debitoIdx ? carneIdx : debitoIdx + 600;
-        const { parc, val } = maiorParcelaSJ(text.slice(debitoIdx, end), 12);
-        fill('debitoParcelas', parc || '5');
-        fill('debitoValor', val || valCalc(5));
-      }
-      if (carneIdx >= 0) {
-        const { parc, val } = maiorParcelaSJ(text.slice(carneIdx, carneIdx + 600), 12);
-        fill('boletoParcelas', parc || '4');
-        fill('boletoValor', val || valCalc(4));
+      // HDI: cartão 12x sem juros, débito 6x sem juros, boleto 12x sem juros
+      if (premioNum > 0) {
+        const fmt = n => (premioNum / n).toFixed(2).replace('.', ',');
+        fill('cartaoParcelas', '12'); fill('cartaoValor', fmt(12));
+        fill('debitoParcelas', '6');  fill('debitoValor',  fmt(6));
+        fill('boletoParcelas', '12'); fill('boletoValor',  fmt(12));
       }
 
       toggleScreen('form');
