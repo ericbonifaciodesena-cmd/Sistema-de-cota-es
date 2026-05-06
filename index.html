@@ -1620,43 +1620,41 @@
         return m ? m[1].replace(/\s+/g, ' ').trim() : '';
       }
 
-      // Remove traço e texto após os dias (ex: "15 DIAS — BASICO" → "15 DIAS")
-      function crLabel(desc) {
-        return desc.replace(/\s*[-–—][\s\S]*/, '').trim();
+      // Remove traço e texto após os dias (ex: "— 15 DIAS BASICO" → usa só o número)
+      function crDias(re) {
+        const raw = descCob(re);
+        const m = raw.match(/(\d+)\s+DIA/i);
+        return m ? m[1] : '';
       }
 
       // Carro Reserva a Terceiros
       if (/CARRO\s+RESERVA\s+TERCEIROS/i.test(text)) {
         check('chkCarroReservaTerceiros', true);
-        const desc = crLabel(descCob(/CARRO\s+RESERVA\s+TERCEIROS\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i));
-        fill('lblCarroReservaTerceiros', 'Carro Reserva a Terceiros' + (desc ? ' — ' + desc : ''));
-        const diasM = desc.match(/(\d+)\s+DIAS/i);
-        if (diasM) fill('carroReservaTerceirosDias', diasM[1]);
+        const dias = crDias(/CARRO\s+RESERVA\s+TERCEIROS\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i);
+        fill('lblCarroReservaTerceiros', 'Carro Reserva a Terceiros' + (dias ? ' — ' + dias + ' dias' : ''));
+        if (dias) fill('carroReservaTerceirosDias', dias);
       }
 
       // Carro Reserva Indenização Integral
       if (/CARRO\s+RESERVA\s+INDENIZA/i.test(text)) {
         check('chkCarroReservaIntegral', true);
-        const desc = crLabel(descCob(/CARRO\s+RESERVA\s+INDENIZA\S*(?:\s+INTEGRAL)?\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i));
-        fill('lblCarroReservaIntegral', 'Carro Reserva Indenização Integral' + (desc ? ' — ' + desc : ''));
-        const diasM = desc.match(/(\d+)\s+DIAS/i);
-        if (diasM) fill('carroReservaIntegralDias', diasM[1]);
+        const dias = crDias(/CARRO\s+RESERVA\s+INDENIZA\S*(?:\s+INTEGRAL)?\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i);
+        fill('lblCarroReservaIntegral', 'Carro Reserva Indenização Integral' + (dias ? ' — ' + dias + ' dias' : ''));
+        if (dias) fill('carroReservaIntegralDias', dias);
       }
       // Carro Reserva ou Desc.Frq
       else if (/CARRO\s+RESERVA\s+OU\s+DESC/i.test(text)) {
         check('chkCarroReserva', true);
-        const desc = crLabel(descCob(/CARRO\s+RESERVA\s+OU\s+DESC\.?\s*FRQ\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i));
-        fill('lblCarroReserva', 'Carro Reserva ou Desc.Frq' + (desc ? ' — ' + desc : ''));
-        const diasM = desc.match(/(\d+)\s+DIAS/i);
-        if (diasM) fill('carroReservaDias', diasM[1]);
+        const dias = crDias(/CARRO\s+RESERVA\s+OU\s+DESC\.?\s*FRQ\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i);
+        fill('lblCarroReserva', 'Carro Reserva ou Desc.Frq' + (dias ? ' — ' + dias + ' dias' : ''));
+        if (dias) fill('carroReservaDias', dias);
       }
       // Carro Reserva básico (exceto TERCEIROS e INDENIZA)
       else if (/CARRO\s+RESERVA(?!\s+TERCEIROS|\s+INDENIZA)/i.test(text)) {
         check('chkCarroReserva', true);
-        const desc = crLabel(descCob(/CARRO\s+RESERVA\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i));
-        fill('lblCarroReserva', 'Carro Reserva' + (desc ? ' — ' + desc : ''));
-        const diasM = desc.match(/(\d+)\s+DIAS/i);
-        if (diasM) fill('carroReservaDias', diasM[1]);
+        const dias = crDias(/CARRO\s+RESERVA\s+(.+?)(?=\s+\d+,\d{2}|\n|$)/i);
+        fill('lblCarroReserva', 'Carro Reserva' + (dias ? ' — ' + dias + ' dias' : ''));
+        if (dias) fill('carroReservaDias', dias);
       }
 
       // Pequenos reparos
