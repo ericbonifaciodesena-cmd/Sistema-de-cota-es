@@ -1045,13 +1045,7 @@
         }
 
         showStatus('Analisando dados…');
-        if (/yelum/i.test(fullText)) {
-          parseYelum(fullText);
-        } else if (/allianz/i.test(fullText)) {
-          parseAllianz(fullText);
-        } else {
-          parseTokioMarine(fullText);
-        }
+        parsePDF(fullText);
 
       } catch (err) {
         showError('Erro ao processar o PDF: ' + err.message);
@@ -2054,6 +2048,253 @@
       } else if (premioNum > 0) {
         fill('cartaoParcelas', '10');
         fill('cartaoValor', valCalc(10));
+      }
+
+      toggleScreen('form');
+    }
+
+    // ── Dispatcher ────────────────────────────────────────────────
+    function parsePDF(text) {
+      if (text.includes('Tokio Marine') || text.includes('TOKIO MARINE')) {
+        parseTokioMarine(text);
+      } else if (/yelum/i.test(text)) {
+        parseYelum(text);
+      } else if (/allianz/i.test(text)) {
+        parseAllianz(text);
+      } else if (text.includes('HDI SEGUROS') || text.includes('Hdi Auto Perfil') || /HDI\s+SEGUROS/i.test(text)) {
+        parseHDI(text);
+      } else {
+        alert('Seguradora não reconhecida. Por favor preencha os campos manualmente.');
+      }
+    }
+
+    // ── Parser HDI Seguros ────────────────────────────────────────
+    function parseHDI(text) {
+      window._debugText = text;
+
+      function fill(id, value) {
+        if (!value) return;
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.tagName === 'SELECT') {
+          const v = value.toLowerCase();
+          for (const opt of el.options) {
+            if (opt.value && (opt.value.toLowerCase().startsWith(v.slice(0, 5)) ||
+                v.startsWith(opt.value.toLowerCase().slice(0, 5)))) {
+              el.value = opt.value; return;
+            }
+          }
+        } else { el.value = value; }
+      }
+      function check(id, val) {
+        const el = document.getElementById(id);
+        if (el) el.checked = !!val;
+      }
+      function toISO(s) {
+        const m = (s || '').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+        return m ? `${m[3]}-${m[2]}-${m[1]}` : '';
+      }
+      function fmtCPF(s) {
+        const d = s.replace(/\D/g, '');
+        return d.length === 11
+          ? `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`
+          : s;
+      }
+
+      // ── IDENTIFICAÇÃO ─────────────────────────────────────────────
+      fill('seguradora', 'HDI');
+
+      const cotM = text.match(/C[aá]lculo\s*-\s*(\d+)/i);
+      if (cotM) fill('numeroCotacao', cotM[1]);
+
+      const validM = text.match(/COTA[ÇC][AÃ]O\s+V[AÁ]LIDA\s+AT[EÉ]\s*([\d\/]+)/i);
+      if (validM) fill('validadeCotacao', toISO(validM[1]));
+
+      const vigM = text.match(/DAS\s+24HS\s+DO\s+DIA\s+([\d\/]+)\s+[AÀ]S\s+24HS\s+DO\s+DIA\s+([\d\/]+)/i);
+      if (vigM) { fill('vigenciaInicio', toISO(vigM[1])); fill('vigenciaTermino', toISO(vigM[2])); }
+
+      // ── SEGURADO ──────────────────────────────────────────────────
+      const nomeM = text.match(/Proponente:\s*([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ\s]+?)(?=\s+CPF|\s{3,}|\n)/i);
+      if (nomeM) {
+        const nome = nomeM[1].trim();
+        fill('nome', nome);
+        fill('condutorNome', nome);
+      }
+
+      const cpfM = text.match(/CPF:\s*(\d{11}|\d{3}\.?\d{3}\.?\d{3}-?\d{2})/i);
+      if (cpfM) {
+        const cpf = fmtCPF(cpfM[1]);
+        fill('cpf', cpf);
+        fill('condutorCpf', cpf);
+      }
+
+      const nascM = text.match(/Data\s+de\s+Nasc\.:\s*([\d\/]+)/i);
+      if (nascM) {
+        const dn = toISO(nascM[1]);
+        fill('dataNasc', dn);
+        fill('condutorDataNasc', dn);
+      }
+
+      const ecM = text.match(/Estado\s+Civil\s+(Casado|Solteiro|Divorciado|Vi[uú]vo|Separado)[^\n]*/i);
+      if (ecM) {
+        const ec = ecM[1].trim();
+        fill('estadoCivil', ec);
+        fill('condutorEstadoCivil', ec);
+      }
+
+      const jovemM = text.match(/Cob\s+Demais\s+Condutores\s+Resid\s+entre\s+18[^N\n]*?(N[aã]o|Sim)/i);
+      if (jovemM) fill('jovemCondutor', /sim/i.test(jovemM[1]) ? 'Sim' : 'Não');
+
+      const cepM = text.match(/CEP\s*Pernoite:\s*(\d{5})-?(\d{3})/i);
+      if (cepM) fill('cep', cepM[1] + '-' + cepM[2]);
+
+      const usoM = text.match(/Utiliza[cç][aã]o\s+do\s+Ve[ií]culo\s+([^\n\r]+)/i);
+      if (usoM) {
+        const u = usoM[1];
+        fill('uso', /Di[aá]ria|Locomoc[aã]o|Particular/i.test(u) ? 'Particular' : u.trim());
+      }
+
+      // ── VEÍCULO ───────────────────────────────────────────────────
+      const veicM = text.match(/Ve[ií]culo:\s*\d+\s*-\s*[A-Z]+\s*-\s*([^\(]+?)(?=\s*\(FIPE|\s*$)/im);
+      if (veicM) fill('modelo', veicM[1].trim());
+
+      const anoM = text.match(/Ano\/Modelo:\s*(\d{4})/i);
+      if (anoM) fill('ano', anoM[1]);
+      // Placa: HDI não exibe — deixa em branco
+
+      // ── PRÊMIO ────────────────────────────────────────────────────
+      const totalM = text.match(/TOTAL\s+[AÀ]\s+VISTA\s*\(R\$\)\s*([\d\.,]+)/i);
+      if (totalM) {
+        fill('premioTotal', 'R$ ' + totalM[1]);
+        fill('aVista', 'R$ ' + totalM[1]);
+      }
+      const premioNum = totalM
+        ? parseFloat(totalM[1].replace(/\./g, '').replace(',', '.'))
+        : 0;
+
+      // ── FRANQUIA PRINCIPAL ────────────────────────────────────────
+      // Linha CASCO: último valor numérico grande é a franquia
+      const cascoLine = text.match(/CASCO[\s\S]{0,200}?(\d[\d\.]+,\d{2})\s*(?:\n|$)/i);
+      if (cascoLine) fill('franquiaValor', 'R$ ' + cascoLine[1]);
+
+      // ── COBERTURAS ESSENCIAIS ─────────────────────────────────────
+      if (/\bCASCO\b/i.test(text)) {
+        check('chkColisao', true);
+        fill('lblColisao', 'Casco 100% FIPE');
+        fill('valColisao', '100% FIPE');
+      }
+
+      const rcMatM = text.match(/RCF-?V\s+DANOS\s+MATERIAIS\s+([\d\.,]+)/i);
+      if (rcMatM) {
+        check('chkDanosMat', true);
+        fill('lblDanosMat', 'Danos Materiais');
+        fill('valDanosMat', 'R$ ' + rcMatM[1]);
+      }
+
+      const rcCorpM = text.match(/RCF-?V\s+DANOS\s+CORPORAIS\s+([\d\.,]+)/i);
+      if (rcCorpM) {
+        check('chkDanosCorp', true);
+        fill('lblDanosCorp', 'Danos Corporais');
+        fill('valDanosCorp', 'R$ ' + rcCorpM[1]);
+      }
+
+      const rcMorM = text.match(/DANOS\s+MORAIS\s+E\s+EST[EÉ]TICOS\s+([\d\.,]+)/i);
+      if (rcMorM) {
+        check('chkDanosMorais', true);
+        fill('lblDanosMorais', 'Danos Morais e Estéticos');
+        fill('valDanosMorais', 'R$ ' + rcMorM[1]);
+      }
+
+      const appM = text.match(/APP\s+MORTE\s+([\d\.,]+)/i);
+      if (appM) {
+        check('chkApp', true);
+        fill('lblApp', 'APP — Morte/Invalidez Permanente');
+        fill('valApp', 'R$ ' + appM[1]);
+      }
+
+      const cvMatM = text.match(/CARTA\s+VERDE\s*-\s*DANOS\s+MATERIAIS\s+U\$\s*([\d\.,]+)/i);
+      if (cvMatM) {
+        check('chkCartaVerdeMat', true);
+        fill('lblCartaVerdeMat', 'Carta Verde — Danos Materiais');
+        fill('valCartaVerdeMat', 'US$ ' + cvMatM[1]);
+      }
+
+      const cvCorpM = text.match(/CARTA\s+VERDE\s*-\s*DANOS\s+PESSOAIS\s+U\$\s*([\d\.,]+)/i);
+      if (cvCorpM) {
+        check('chkCartaVerdeCorp', true);
+        fill('lblCartaVerdeCorp', 'Carta Verde — Danos Corporais');
+        fill('valCartaVerdeCorp', 'US$ ' + cvCorpM[1]);
+      }
+
+      // ── COBERTURAS ADICIONAIS ─────────────────────────────────────
+      const assistM = text.match(/ESPECIAL\s+AUTO\s*-\s*(\d+)\s*KM/i);
+      if (assistM) {
+        const km = assistM[1];
+        check('chkAssistencia', true);
+        fill('assistenciaKm', km);
+        fill('lblAssistencia', `Assistência 24h — ${km}km`);
+      }
+
+      const vidrosValM = text.match(/HDI\s+AUTO\s+VIDROS[^\d]+([\d\.,]+)/i);
+      if (vidrosValM) {
+        const v = parseFloat(vidrosValM[1].replace(/\./g, '').replace(',', '.'));
+        if (v > 0) {
+          check('chkVidros', true);
+          fill('lblVidros', 'Vidros, faróis, lanternas e retrovisores');
+        }
+      }
+
+      if (/COM\s+CARRO\s+RESERVA/i.test(text) && !/SEM\s+CARRO\s+RESERVA/i.test(text)) {
+        check('chkCarroReserva', true);
+        fill('lblCarroReserva', 'Carro Reserva');
+      }
+
+      // ── FRANQUIAS DE SERVIÇOS ─────────────────────────────────────
+      const notasM = text.match(/\(\*1\)([\s\S]+?)(?=\(\*3\)|\(\*4\)|PARCELAMENTO|Parcelamento)/i);
+      if (notasM) {
+        const bloco = notasM[1];
+        const itens = [];
+        const itemRe = /([^\.]+?)\s+com\s+franquia\s+de\s+R\$\s*([\d\.,]+)/gi;
+        let m;
+        while ((m = itemRe.exec(bloco)) !== null) {
+          itens.push(m[1].trim() + ': R$ ' + m[2]);
+        }
+        if (itens.length) fill('franquias', itens.join(' | '));
+      }
+
+      // ── PAGAMENTO ─────────────────────────────────────────────────
+      function maiorParcelaSJ(bloco, max) {
+        let maxN = 0, parc = '', val = '';
+        for (const m of bloco.matchAll(/(\d{1,2})\s*[xX]\s*([\d\.,]+)/g)) {
+          const n = parseInt(m[1]);
+          if (n > maxN && n <= max) { maxN = n; parc = String(n); val = m[2]; }
+        }
+        return { parc, val };
+      }
+      function valCalc(n) {
+        return premioNum > 0 ? (premioNum / n).toFixed(2).replace('.', ',') : '';
+      }
+
+      const cartaoIdx = text.search(/Cart[aã]o\s+de\s+Cr[eé]dito/i);
+      const debitoIdx = text.search(/D[eé]bito\s+Em\s+Conta/i);
+      const carneIdx  = text.search(/Carn[eê]/i);
+
+      if (cartaoIdx >= 0) {
+        const end = debitoIdx > cartaoIdx ? debitoIdx : carneIdx > cartaoIdx ? carneIdx : cartaoIdx + 600;
+        const { parc, val } = maiorParcelaSJ(text.slice(cartaoIdx, end), 12);
+        fill('cartaoParcelas', parc || '12');
+        fill('cartaoValor', val || valCalc(12));
+      }
+      if (debitoIdx >= 0) {
+        const end = carneIdx > debitoIdx ? carneIdx : debitoIdx + 600;
+        const { parc, val } = maiorParcelaSJ(text.slice(debitoIdx, end), 12);
+        fill('debitoParcelas', parc || '5');
+        fill('debitoValor', val || valCalc(5));
+      }
+      if (carneIdx >= 0) {
+        const { parc, val } = maiorParcelaSJ(text.slice(carneIdx, carneIdx + 600), 12);
+        fill('boletoParcelas', parc || '4');
+        fill('boletoValor', val || valCalc(4));
       }
 
       toggleScreen('form');
