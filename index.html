@@ -2175,25 +2175,15 @@
         : 0;
 
       // ── FRANQUIA PRINCIPAL ────────────────────────────────────────
-      // Debug: expõe contexto ao redor de "Valor Determinado"/"VMR" no console
-      (function(){
-        const idx = text.search(/Valor\s+(?:Determinado|de\s+Mercado\s+Referenciado|Mercado\s+Ref)/i);
-        if (idx >= 0) {
-          console.log('HDI franquia ctx:', JSON.stringify(text.slice(Math.max(0,idx-30), idx+500)));
-        } else {
-          // Tenta achar "Franquia" sozinho
-          const fi = text.search(/\bFranquia\b/i);
-          console.log('HDI franquia (sem VMD):', fi >= 0 ? JSON.stringify(text.slice(Math.max(0,fi-50), fi+300)) : 'NÃO ENCONTRADO');
-        }
-      })();
-      // Tentativas em ordem de especificidade:
-      // 1) "Valor Determinado" ou "Valor de Mercado Referenciado" → número logo após
-      // 2) "Franquia" no contexto CASCO/tabela → primeiro valor numérico
-      const franqM = text.match(/(?:Valor\s+Determinado|Valor\s+de\s+Mercado\s+Referenciado|V\.?\s*M\.?\s*R\.?)\s*[\s\S]{0,20}?([\d\.]+,\d{2})/i)
-                  || text.match(/Valor\s+Determinado\s+([\d\.]+,\d{2})/i)
-                  || text.match(/Mercado\s+Referenciado\s+([\d\.]+,\d{2})/i)
-                  || text.match(/CASCO[\s\S]{0,400}?Franquia[\s\S]{0,100}?([\d\.]+,\d{2})/i);
-      if (franqM) fill('franquiaValor', 'R$ ' + franqM[1]);
+      // Linha CASCO: "CASCO 100,00%FIPE <v1> <v2> <v3> <franquia>"
+      // O 4º valor numérico da linha é a franquia de indenização parcial.
+      const linhaCasco = text.match(/CASCO\s+100,00%FIPE\s+([\d\.,]+)\s+([\d\.,]+)\s+([\d\.,]+)\s+([\d\.,]+)/i);
+      if (linhaCasco) {
+        fill('franquiaValor', 'R$ ' + linhaCasco[4]);
+      } else {
+        const franqM = text.match(/CASCO\s+100,00%FIPE[\s\d\.,]+?([\d\.,]+)\s*\n/i);
+        if (franqM) fill('franquiaValor', 'R$ ' + franqM[1]);
+      }
 
       // ── COBERTURAS ESSENCIAIS ─────────────────────────────────────
       if (/\bCASCO\b/i.test(text)) {
