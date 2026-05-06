@@ -2436,6 +2436,25 @@
       e.preventDefault();
       generatePDF();
     });
+
+    // Recalcula a vista e parcelas ao editar o prêmio total manualmente
+    document.getElementById('premioTotal').addEventListener('input', () => {
+      const raw = document.getElementById('premioTotal').value
+        .replace(/[^\d,]/g, '').replace(',', '.');
+      const total = parseFloat(raw);
+      if (!total || total <= 0) return;
+
+      const fmt = v => v.toFixed(2).replace('.', ',');
+
+      document.getElementById('aVista').value = 'R$ ' + fmt(total);
+
+      ['cartao', 'debito', 'boleto'].forEach(forma => {
+        const nEl = document.getElementById(forma + 'Parcelas');
+        const vEl = document.getElementById(forma + 'Valor');
+        const n = parseInt(nEl?.value);
+        if (n > 0) vEl.value = fmt(total / n);
+      });
+    });
   </script>
 
 </body>
