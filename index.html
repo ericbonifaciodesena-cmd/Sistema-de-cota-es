@@ -2333,7 +2333,7 @@
       fill('seguradora', 'Bradesco');
       const cotM   = text.match(/Estudo[:\s]+([\w\/]+)/i);
       if (cotM)  fill('numeroCotacao', cotM[1]);
-      const validM = text.match(/C[aá]lculo\s+v[aá]lido\s+at[eé][:\s]*([\d\/]+)/i);
+      const validM = text.match(/C[aá]lculo v[aá]lido at[eé]:\s*([\d\/]+)/i);
       if (validM) fill('validadeCotacao', toISO(validM[1]));
 
       // ── VIGÊNCIA ──────────────────────────────────────────────────
@@ -2344,13 +2344,11 @@
       }
 
       // ── SEGURADO ──────────────────────────────────────────────────
-      // Títulos aparecem primeiro, valores depois em sequência
       const segM = text.match(/DADOS\s+DO\s+PROPONENTE[\s\S]+?Estado\s+Civil:\s+CEP\s+de\s+Pernoite:[\s\S]+?([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+(\d{3}\.\d{3}\.\d{3}-\d{2})/i);
       if (segM) {
         fill('nome', segM[1].trim());
         fill('cpf',  segM[2]);
       }
-      // Data nasc: a data imediatamente anterior à vigência
       const nascSegM = text.match(/(\d{2}\/\d{2}\/\d{4})\s+das\s+24h/i);
       if (nascSegM) fill('dataNasc', toISO(nascSegM[1]));
 
@@ -2368,26 +2366,43 @@
         const ecM = text.match(/Estado\s+Civil[:\s]*([^\n\r]+)/i);
         if (ecM) fill('estadoCivil', /casado|uni[aã]o/i.test(ecM[1]) ? 'Casado' : ecM[1].trim());
       } else {
-        const nomeCondM = text.match(/Caracter[ií]sticas\s+do\s+principal\s+condutor\s+Nome:\s+([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+CPF/i);
-        if (nomeCondM) fill('nome', nomeCondM[1].trim());
-        const cpfCondM  = text.match(/Caracter[ií]sticas\s+do\s+principal\s+condutor[\s\S]{0,300}?CPF\/CNPJ[:\s]+([\d]{3}\.[\d]{3}\.[\d]{3}-[\d]{2})/i);
-        if (cpfCondM)  fill('cpf', cpfCondM[1]);
-        const nascCondM = text.match(/Caracter[ií]sticas\s+do\s+principal\s+condutor[\s\S]{0,300}?Data\s+Nasc\.[:\s]+([\d\/]+)/i);
-        if (nascCondM) fill('dataNasc', toISO(nascCondM[1]));
-        const ecCondM   = text.match(/Caracter[ií]sticas\s+do\s+principal\s+condutor[\s\S]{0,400}?Estado\s+Civil[:\s]+([^\n\r]+)/i);
-        if (ecCondM) fill('estadoCivil', /casado|uni[aã]o/i.test(ecCondM[1]) ? 'Casado' : ecCondM[1].trim());
+        const condBlock = text.match(/Caracter[ií]sticas\s+do\s+principal\s+condutor\s+([\s\S]+?)(?=Question[aá]rio\s+de\s+Avalia[cç][aã]o|PAGAMENTO|\n\n)/i);
+        if (condBlock) {
+          const bloco = condBlock[1];
+          const nomeC = bloco.match(/Nome:\s+([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)(?=\s+CPF)/i);
+          const cpfC  = bloco.match(/CPF\/CNPJ:\s+([\d\.\-]+)/i);
+          const nascC = bloco.match(/Data\s+Nasc\.:\s+([\d\/]+)/i);
+          const ecC   = bloco.match(/Estado\s+Civil:\s+([^\n\r]+)/i);
+          if (nomeC) fill('condutorNome', nomeC[1].trim());
+          if (cpfC)  fill('condutorCpf',  cpfC[1].trim());
+          if (nascC) fill('condutorDataNasc', toISO(nascC[1]));
+          if (ecC) {
+            const ec = ecC[1].trim();
+            const ecNorm = /casado|uni[aã]o/i.test(ec) ? 'Casado'
+                         : /solteiro/i.test(ec)        ? 'Solteiro'
+                         : /divorciado/i.test(ec)      ? 'Divorciado'
+                         : /vi[uú]vo/i.test(ec)        ? 'Viúvo'
+                         : ec;
+            fill('condutorEstadoCivil', ecNorm);
+          }
+        }
       }
 
       // ── VEÍCULO ───────────────────────────────────────────────────
-      // Bloco após 'Carroceria:' tem: <modelo> <MARCA> <uso> ...
-      const veicM = text.match(/Carroceria:\s+[\s\S]{0,20}?([A-Za-zÀ-ú][A-Za-zÀ-ú\s\-\.\/0-9]+?)\s+(RENAULT|TOYOTA|HONDA|VOLKSWAGEN|CHEVROLET|FIAT|FORD|NISSAN|JEEP|HYUNDAI|KIA|PEUGEOT|CITRO[EË]N|MITSUBISHI|MERCEDES|BMW|VOLVO|AUDI)\b/i);
-      if (veicM) fill('modelo', veicM[2].trim() + ' ' + veicM[1].trim());
-      const anoM  = text.match(/Ano\s+Mod\.[:\s]+[\s\S]{0,50}?(\d{4})\s+[A-Z0-9]+\s+\d{4}/i)
-                 || text.match(/Ano\s+Mod\.[:\s]*([\d\s]+?)(?:\n|\r)/i);
-      if (anoM) {
-        const anos = anoM[1].trim().match(/\d{4}/g);
-        if (anos) fill('ano', anos[anos.length - 1]);
+      const veicBlock = text.match(/Carroceria:\s+([\s\S]+?)(?=CL[AÁ]USULAS)/i);
+      if (veicBlock) {
+        const vb = veicBlock[1].trim();
+        const marcas = ['RENAULT','TOYOTA','HONDA','VOLKSWAGEN','CHEVROLET','FIAT','FORD','NISSAN','JEEP','HYUNDAI','KIA','PEUGEOT','MITSUBISHI','MERCEDES','BMW','CITROEN','VOLVO','AUDI'];
+        for (const marca of marcas) {
+          if (vb.includes(marca)) {
+            const modelo = vb.substring(0, vb.indexOf(marca)).trim();
+            fill('modelo', marca + ' ' + modelo);
+            break;
+          }
+        }
       }
+      const anoM = text.match(/Ano\s+Mod\.:\s+(\d{4})/i);
+      if (anoM) fill('ano', anoM[1]);
       const placaM = text.match(/([A-Z]{3}\d[A-Z0-9]\d{2})\s+N[aã]o\s+\d{7}/i)
                   || text.match(/Placa[:\s]*([A-Z]{3}\d[A-Z0-9]\d{2})/i);
       if (placaM) fill('placa', placaM[1]);
@@ -2399,20 +2414,19 @@
         fill('valColisao', '100% FIPE');
       }
 
-      // Sequência de valores após 'Valor de Mercado Referenciado 100 %':
-      // DM, DC, (GU), DMorais, Invalidez, (DespMed), Morte
-      const lmiM = text.match(/Valor\s+de\s+Mercado\s+Referenciado\s+100\s*%[\s\S]{0,80}?([\d][\d\.,]+)\s+([\d][\d\.,]+)\s+[\d][\d\.,]+\s+([\d][\d\.,]+)\s+([\d][\d\.,]+)\s+[\d][\d\.,]+\s+([\d][\d\.,]+)/i);
-      if (lmiM) {
-        const [, dm, dc, dmor, inv, morte] = lmiM;
-        const toVal = v => parseFloat(v.replace(/\./g,'').replace(',','.'));
-        if (toVal(dm) > 0)   { check('chkDanosMat',   true); fill('lblDanosMat',   'Danos Materiais');             fill('valDanosMat',   'R$ ' + dm);   }
-        if (toVal(dc) > 0)   { check('chkDanosCorp',  true); fill('lblDanosCorp',  'Danos Corporais');             fill('valDanosCorp',  'R$ ' + dc);   }
-        if (toVal(dmor) > 0) { check('chkDanosMorais',true); fill('lblDanosMorais','Danos Morais e Estéticos');    fill('valDanosMorais','R$ ' + dmor); }
-        if (toVal(inv) > 0 || toVal(morte) > 0) {
-          check('chkApp', true);
-          fill('lblApp', 'APP — Morte/Invalidez Permanente');
-          fill('valApp', 'R$ ' + (toVal(morte) > 0 ? morte : inv));
-        }
+      const dmMatch      = text.match(/D\.M\.:\s+RCF[\s\S]{0,50}?([\d\.,]{6,})/i) || text.match(/D\.M\.:\s+([\d\.,]+)/i);
+      const dcMatch      = text.match(/D\.C\.:\s+([\d\.,]+)/i);
+      const dmorMatch    = text.match(/D\.\s*Morais\.:\s+([\d\.,]+)/i);
+      const morteMatch   = text.match(/Morte\s+p\/\s*Passageiro:\s+([\d\.,]+)/i);
+      const invalidMatch = text.match(/Invalidez\s+p\/\s*Passageiro:\s+([\d\.,]+)/i);
+
+      if (dmMatch)   { check('chkDanosMat',   true); fill('lblDanosMat',   'Danos Materiais');          fill('valDanosMat',   'R$ ' + dmMatch[1]);   }
+      if (dcMatch)   { check('chkDanosCorp',  true); fill('lblDanosCorp',  'Danos Corporais');          fill('valDanosCorp',  'R$ ' + dcMatch[1]);   }
+      if (dmorMatch) { check('chkDanosMorais',true); fill('lblDanosMorais','Danos Morais e Estéticos'); fill('valDanosMorais','R$ ' + dmorMatch[1]); }
+      if (morteMatch || invalidMatch) {
+        check('chkApp', true);
+        fill('lblApp', 'APP — Morte/Invalidez Permanente');
+        fill('valApp', 'R$ ' + (morteMatch?.[1] || invalidMatch?.[1]));
       }
 
       if (/\(006\)\s*Extens[aã]o\s+per[ií]metro\s+Mercosul/i.test(text)) {
