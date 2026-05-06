@@ -2076,6 +2076,8 @@
         parseAllianz(text);
       } else if (text.includes('HDI SEGUROS') || text.includes('Hdi Auto Perfil') || /HDI\s+SEGUROS/i.test(text)) {
         parseHDI(text);
+      } else if (/Bradesco Auto|BRADESCO|bradesco/i.test(text)) {
+        parseBradesco(text);
       } else {
         alert('Seguradora não reconhecida. Por favor preencha os campos manualmente.');
       }
@@ -2294,6 +2296,228 @@
         fill('cartaoParcelas', '12'); fill('cartaoValor', fmt(12));
         fill('debitoParcelas', '6');  fill('debitoValor',  fmt(6));
         fill('boletoParcelas', '12'); fill('boletoValor',  fmt(12));
+      }
+
+      toggleScreen('form');
+    }
+
+    // ── Parser Bradesco Auto/RE ───────────────────────────────────
+    function parseBradesco(text) {
+      window._debugText = text;
+
+      function fill(id, value) {
+        if (!value && value !== 0) return;
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.tagName === 'SELECT') {
+          const opt = [...el.options].find(o =>
+            o.value.toLowerCase() === String(value).toLowerCase() ||
+            o.text.toLowerCase().includes(String(value).toLowerCase())
+          );
+          if (opt) el.value = opt.value;
+        } else {
+          el.value = value;
+        }
+      }
+      function check(id, val) {
+        const el = document.getElementById(id);
+        if (el) el.checked = !!val;
+      }
+      function toISO(ddmmaaaa) {
+        if (!ddmmaaaa) return '';
+        const p = ddmmaaaa.split('/');
+        return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : '';
+      }
+
+      // ── IDENTIFICAÇÃO ─────────────────────────────────────────────
+      fill('seguradora', 'Bradesco');
+      const cotM   = text.match(/N[oº°]\s*Cota[cç][aã]o[:\s]*([\w\/]+)/i);
+      if (cotM)  fill('numeroCotacao', cotM[1]);
+      const validM = text.match(/C[aá]lculo v[aá]lido at[eé][:\s]*([\d\/]+)/i);
+      if (validM) fill('validadeCotacao', toISO(validM[1]));
+
+      // ── VIGÊNCIA ──────────────────────────────────────────────────
+      const vigM = text.match(/das\s+24h\s+de\s+([\d\/]+)\s+[àa]s\s+24h\s+de\s+([\d\/]+)/i);
+      if (vigM) {
+        fill('vigenciaInicio',  toISO(vigM[1]));
+        fill('vigenciaTermino', toISO(vigM[2]));
+      }
+
+      // ── SEGURADO ──────────────────────────────────────────────────
+      const nomeSegM = text.match(/Nome[:\s]+([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)(?:\s+CPF)/i);
+      if (nomeSegM) fill('nome', nomeSegM[1].trim());
+      const cpfSegM  = text.match(/CPF\/CNPJ[:\s]*([\d]{3}\.[\d]{3}\.[\d]{3}[-–][\d]{2})/i);
+      if (cpfSegM)  fill('cpf', cpfSegM[1]);
+      const nascSegM = text.match(/Data\s+Nasc\.[:\s]*([\d\/]+)/i);
+      if (nascSegM) fill('dataNasc', toISO(nascSegM[1]));
+
+      const cepM = text.match(/CEP\s+de\s+Pernoite[:\s]*(\d{5})-?(\d{3})/i);
+      if (cepM) fill('cep', cepM[1] + '-' + cepM[2]);
+
+      const usoM = text.match(/Uso\s+Ve[ií]culo[:\s]*([^\n\r]+)/i);
+      if (usoM) {
+        const usoRaw = usoM[1].trim();
+        fill('uso', /particular/i.test(usoRaw) ? 'Particular' : usoRaw);
+      }
+
+      const jovemM = text.match(/DESEJA\s+COBERTURA\s+PARA\s+OUTRO\s+CONDUTOR\s+ENTRE\s+18\s+E\s+25\s+ANOS[\s\S]{0,200}?R\.[:\s]*(SIM|N[AÃ]O)/i);
+      if (jovemM) fill('jovemCondutor', /sim/i.test(jovemM[1]) ? 'Sim' : 'Não');
+
+      // ── CONDUTOR PRINCIPAL ────────────────────────────────────────
+      const condSec = text.match(/Caracter[ií]sticas\s+do\s+principal\s+condutor([\s\S]{0,800}?)(?:Caracter[ií]sticas|LIMITES|$)/i);
+      const segPrinc = /Segurado\s+[eé]\s+o\s+principal\s+condutor\s*[?:]\s*Sim/i.test(text);
+
+      if (segPrinc) {
+        // condutor = segurado, copiar dados já preenchidos
+        const ecEl = document.getElementById('estadoCivil');
+        // estado civil pode aparecer globalmente
+        const ecM = text.match(/Estado\s+Civil[:\s]*([^\n\r]+)/i);
+        if (ecM) {
+          const ecRaw = ecM[1].trim();
+          fill('estadoCivil', /casado|uni[aã]o/i.test(ecRaw) ? 'Casado' : ecRaw);
+        }
+      } else if (condSec) {
+        const sec = condSec[1];
+        const nomeCondM = sec.match(/Nome[:\s]+([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)(?:\s+CPF)/i);
+        // Only fill nome if condutor differs from segurado
+        if (nomeCondM) fill('nome', nomeCondM[1].trim());
+        const cpfCondM  = sec.match(/CPF\/CNPJ[:\s]*([\d]{3}\.[\d]{3}\.[\d]{3}[-–][\d]{2})/i);
+        if (cpfCondM)  fill('cpf', cpfCondM[1]);
+        const nascCondM = sec.match(/Data\s+Nasc\.[:\s]*([\d\/]+)/i);
+        if (nascCondM) fill('dataNasc', toISO(nascCondM[1]));
+        const ecCondM   = sec.match(/Estado\s+Civil[:\s]*([^\n\r]+)/i);
+        if (ecCondM) {
+          const ecRaw = ecCondM[1].trim();
+          fill('estadoCivil', /casado|uni[aã]o/i.test(ecRaw) ? 'Casado' : ecRaw);
+        }
+      }
+
+      // ── VEÍCULO ───────────────────────────────────────────────────
+      const marcaM  = text.match(/Marca[:\s]*([^\n\r]+)/i);
+      const tipoM   = text.match(/Tipo\s+do\s+Ve[ií]culo[:\s]*([^\n\r]+)/i);
+      if (marcaM && tipoM) fill('modelo', marcaM[1].trim() + ' ' + tipoM[1].trim());
+      else if (tipoM)      fill('modelo', tipoM[1].trim());
+      const anoM  = text.match(/Ano\s+Mod\.[:\s]*(\d{4})/i);
+      if (anoM)  fill('ano', anoM[1]);
+      const placaM = text.match(/Placa[:\s]*([A-Z]{3}\d[A-Z0-9]\d{2})/i);
+      if (placaM) fill('placa', placaM[1]);
+
+      // ── COBERTURAS ESSENCIAIS ─────────────────────────────────────
+      if (/Cobertura\s+Compreensiva|Valor\s+mercado\s+referenciado/i.test(text)) {
+        check('chkColisao', true);
+        fill('lblColisao', 'Casco — Valor de Mercado Referenciado');
+        fill('valColisao', '100% FIPE');
+      }
+      const dmM = text.match(/D\.M\.[:\s]*([\d\.,]+)/i);
+      if (dmM) {
+        check('chkDanosMat', true);
+        fill('lblDanosMat', 'Danos Materiais');
+        fill('valDanosMat', 'R$ ' + dmM[1]);
+      }
+      const dcM = text.match(/D\.C\.[:\s]*([\d\.,]+)/i);
+      if (dcM) {
+        check('chkDanosCorp', true);
+        fill('lblDanosCorp', 'Danos Corporais');
+        fill('valDanosCorp', 'R$ ' + dcM[1]);
+      }
+      const dmrM = text.match(/D\.\s*Morais\.[:\s]*([\d\.,]+)/i);
+      if (dmrM) {
+        check('chkDanosMorais', true);
+        fill('lblDanosMorais', 'Danos Morais e Estéticos');
+        fill('valDanosMorais', 'R$ ' + dmrM[1]);
+      }
+      const appMorteM    = text.match(/Morte\s+p\/\s*Passageiro[:\s]*([\d\.,]+)/i);
+      const appInvalidM  = text.match(/Invalidez\s+p\/\s*Passageiro[:\s]*([\d\.,]+)/i);
+      if (appMorteM || appInvalidM) {
+        check('chkApp', true);
+        fill('lblApp', 'APP — Morte/Invalidez Permanente');
+        fill('valApp', 'R$ ' + (appMorteM?.[1] || appInvalidM?.[1]));
+      }
+      if (/\(006\)\s*Extens[aã]o\s+per[ií]metro\s+Mercosul/i.test(text)) {
+        check('chkCartaVerdeMat', true);
+        fill('lblCartaVerdeMat', 'Carta Verde — Danos Materiais');
+        fill('valCartaVerdeMat', 'US$ 20.000,00');
+        check('chkCartaVerdeCorp', true);
+        fill('lblCartaVerdeCorp', 'Carta Verde — Danos Corporais');
+        fill('valCartaVerdeCorp', 'US$ 40.000,00');
+      }
+
+      // ── COBERTURAS ADICIONAIS ─────────────────────────────────────
+      const assistM = text.match(/Assist\s+Auto\s+Dia\/Noite[^(]*?(\d+)\s*KM/i)
+                   || text.match(/Assist\s+Auto[^(]*?(Ilimitado)/i);
+      if (assistM) {
+        check('chkAssistencia', true);
+        const km = assistM[1];
+        fill('assistenciaKm', km);
+        fill('lblAssistencia', 'Assistência 24h ' + (/ilimitado/i.test(km) ? 'Ilimitada' : km + 'km'));
+      }
+      if (/\(024\)\s*Vidro\s+Protegido\s+Plus/i.test(text)) {
+        check('chkVidros', true);
+        fill('lblVidros', 'Vidros, faróis, lanternas e retrovisores');
+      }
+      const crM = text.match(/Auto\s+Reserva\s*[-–]\s*(\d+)\s*dias/i);
+      if (crM) {
+        check('chkCarroReserva', true);
+        fill('lblCarroReserva', 'Carro Reserva — ' + crM[1] + ' dias');
+      }
+      if (/\(125\)\s*Repare\s+F[aá]cil\s*[-–]\s*Sup\.\s*Martelinho/i.test(text)) {
+        check('chkPequenosReparos', true);
+        fill('lblPequenosReparos', 'Pequenos Reparos (Martelinho)');
+      }
+      if (/\(126\)\s*Repare\s+F[aá]cil\s*[-–]\s*Rep\.\s*R[aá]pido/i.test(text)) {
+        check('chkParachoque', true);
+        fill('lblParachoque', 'Troca de Para-choque');
+      }
+      if (/Rodas,\s*Pneus\s+e\s+Suspens[aã]o/i.test(text)) {
+        check('chkRodas', true);
+        fill('lblRodas', 'Proteção de Rodas, Pneus e Suspensão');
+      }
+
+      // ── FRANQUIAS DE SERVIÇOS ─────────────────────────────────────
+      const franqSecM = text.match(/FRANQUIAS\s*\(R\$\)([\s\S]{0,800}?)(?:\n\n|\bPRÊMIO\b|\bTOTAL\b)/i);
+      if (franqSecM) {
+        const itens = [];
+        const re = /([A-Za-zÀ-ú][A-Za-zÀ-ú\s\-\/]+?)[:\s]+([\d\.]+,\d{2})/g;
+        let m;
+        while ((m = re.exec(franqSecM[1])) !== null) {
+          const val = parseFloat(m[2].replace(/\./g,'').replace(',','.'));
+          if (val > 0) itens.push(m[1].trim() + ': R$ ' + m[2]);
+        }
+        if (itens.length) fill('franquias', itens.join(' | '));
+      }
+
+      // ── FRANQUIA PRINCIPAL ────────────────────────────────────────
+      const franqPrinc = text.match(/Ve[ií]culo[:\s]*([\d\.,]+)\s*\(25/i)
+                      || text.match(/Franquia\s+Aplicada[:\s]*([\d\.,]+)/i);
+      if (franqPrinc) fill('franquiaValor', 'R$ ' + franqPrinc[1]);
+
+      // ── VALORES / PAGAMENTOS ──────────────────────────────────────
+      const totalM = text.match(/TOTAL\s+A\s+PAGAR[:\s]*([\d\.,]+)/i);
+      if (totalM) {
+        fill('premioTotal', 'R$ ' + totalM[1]);
+        fill('aVista',      'R$ ' + totalM[1]);
+      }
+
+      function melhorParcela(bloco) {
+        const matches = [...bloco.matchAll(/(\d+)x\s+R\$\s*([\d\.,]+)/g)];
+        if (!matches.length) return null;
+        return matches.reduce((best, cur) => parseInt(cur[1]) > parseInt(best[1]) ? cur : best);
+      }
+
+      const cartaoSecM = text.match(/Cart[aã]o\s+de\s+Cr[eé]dito[\s\S]{0,600}?(?=D[eé]bito\s+em\s+Conta|Carn[eê]|$)/i);
+      if (cartaoSecM) {
+        const p = melhorParcela(cartaoSecM[0]);
+        if (p) { fill('cartaoParcelas', p[1]); fill('cartaoValor', p[2]); }
+      }
+      const debitoSecM = text.match(/D[eé]bito\s+em\s+Conta[\s\S]{0,400}?(?=Carn[eê]|Cart[aã]o|$)/i);
+      if (debitoSecM) {
+        const p = melhorParcela(debitoSecM[0]);
+        if (p) { fill('debitoParcelas', p[1]); fill('debitoValor', p[2]); }
+      }
+      const boletoSecM = text.match(/Carn[eê][\s\S]{0,400}?(?=D[eé]bito|Cart[aã]o|$)/i);
+      if (boletoSecM) {
+        const p = melhorParcela(boletoSecM[0]);
+        if (p) { fill('boletoParcelas', p[1]); fill('boletoValor', p[2]); }
       }
 
       toggleScreen('form');
