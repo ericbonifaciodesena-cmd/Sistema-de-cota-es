@@ -2087,6 +2087,8 @@
     function parseHDI(text) {
       window._debugText = text;
 
+      const temValorDeterminado = text.includes('Valor Determinado');
+
       function fill(id, value) {
         if (!value) return;
         const el = document.getElementById(id);
@@ -2190,11 +2192,14 @@
         : 0;
 
       // ── FRANQUIA PRINCIPAL ────────────────────────────────────────
-      // Linha CASCO: "CASCO   100,00%   FIPE   v1   v2   v3   franquia"
-      // O 4º valor numérico da linha é a franquia de indenização parcial.
-      const linhaCasco = text.match(/CASCO\s+100,00%\s+FIPE\s+([\d\.,]+)\s+([\d\.,]+)\s+([\d\.,]+)\s+([\d\.,]+)/i);
-      if (linhaCasco) {
-        document.getElementById('franquiaValor').value = 'R$ ' + linhaCasco[4];
+      // Formato antigo (com Valor Determinado): 4 valores → grupo 4 = franquia
+      // Formato novo (sem Valor Determinado):   2 valores → grupo 2 = franquia
+      if (temValorDeterminado) {
+        const linhaCasco = text.match(/CASCO\s+100,00%\s+FIPE\s+([\d\.,]+)\s+([\d\.,]+)\s+([\d\.,]+)\s+([\d\.,]+)/i);
+        if (linhaCasco) document.getElementById('franquiaValor').value = 'R$ ' + linhaCasco[4];
+      } else {
+        const cascoM = text.match(/CASCO\s+100,00%\s+FIPE\s+([\d\.,]+)\s+([\d\.,]+)/i);
+        if (cascoM) document.getElementById('franquiaValor').value = 'R$ ' + cascoM[2];
       }
 
       // ── COBERTURAS ESSENCIAIS ─────────────────────────────────────
@@ -2254,12 +2259,13 @@
       }
 
       // ── COBERTURAS ADICIONAIS ─────────────────────────────────────
-      const assistM = text.match(/ESPECIAL\s+AUTO\s*-\s*(\d+)\s*KM/i);
+      const assistM = text.match(/ESPECIAL\s+AUTO\s*-\s*(\d+)\s*KM/i)
+                   || text.match(/VIP\s+AUTO\s*-\s*SEM\s+LIMITE\s+KM/i);
       if (assistM) {
-        const km = assistM[1];
+        const km = assistM[1] || 'Ilimitado';
         check('chkAssistencia', true);
         fill('assistenciaKm', km);
-        fill('lblAssistencia', `Assistência 24h — ${km}km`);
+        fill('lblAssistencia', km === 'Ilimitado' ? 'Assistência 24h — Ilimitada' : `Assistência 24h — ${km}km`);
       }
 
       const vidrosValM = text.match(/HDI\s+AUTO\s+VIDROS[^\d]+([\d\.,]+)/i);
@@ -2271,7 +2277,12 @@
         }
       }
 
-      if (/COM\s+CARRO\s+RESERVA/i.test(text) && !/SEM\s+CARRO\s+RESERVA/i.test(text)) {
+      const crDiasM = text.match(/(\d+)\s*DIAS?\s+CR\s+MANUAL/i);
+      if (crDiasM) {
+        check('chkCarroReserva', true);
+        fill('carroReservaDias', parseInt(crDiasM[1]));
+        fill('lblCarroReserva', `Carro Reserva — ${parseInt(crDiasM[1])} dias`);
+      } else if (/COM\s+CARRO\s+RESERVA/i.test(text) && !/SEM\s+CARRO\s+RESERVA/i.test(text)) {
         check('chkCarroReserva', true);
         fill('lblCarroReserva', 'Carro Reserva');
       }
@@ -2290,8 +2301,31 @@
       }
 
       // ── PAGAMENTO ─────────────────────────────────────────────────
-      // HDI: cartão 12x sem juros, débito 6x sem juros, boleto 12x sem juros
-      if (premioNum > 0) {
+      // Tenta extrair dos blocos de parcelamento do PDF (novo formato).
+      // Fallback: cálculo fixo 12x/6x/12x para formato antigo.
+      let parcelasExtraidas = false;
+      if (!temValorDeterminado) {
+        const blocos = {
+          cartao: text.match(/Cart[aã]o\s+de\s+Cr[eé]dito\s+Plano\s+Valor[^\n]*\n([\s\S]+?)(?=D[eé]bito\s+Em\s+Conta|Carn[eê]|Assinatura)/i),
+          debito: text.match(/D[eé]bito\s+Em\s+Conta\s+Plano\s+Valor[^\n]*\n([\s\S]+?)(?=Carn[eê]|Assinatura|Cart[aã]o\s+de\s+Cr[eé]dito)/i),
+          carne:  text.match(/Carn[eê]\s+Plano\s+Valor[^\n]*\n([\s\S]+?)(?=Assinatura|ATEN[ÇC][ÃA]O|$)/i),
+        };
+        const idMap = {
+          cartao: ['cartaoParcelas', 'cartaoValor'],
+          debito: ['debitoParcelas', 'debitoValor'],
+          carne:  ['boletoParcelas', 'boletoValor'],
+        };
+        for (const [tipo, bloco] of Object.entries(blocos)) {
+          if (!bloco) continue;
+          const parcelas = [...bloco[0].matchAll(/(\d+)\s*x\s*([\d\.,]+)/g)];
+          if (!parcelas.length) continue;
+          const ultima = parcelas[parcelas.length - 1];
+          fill(idMap[tipo][0], ultima[1]);
+          fill(idMap[tipo][1], ultima[2]);
+          parcelasExtraidas = true;
+        }
+      }
+      if (!parcelasExtraidas && premioNum > 0) {
         const fmt = n => (premioNum / n).toFixed(2).replace('.', ',');
         fill('cartaoParcelas', '12'); fill('cartaoValor', fmt(12));
         fill('debitoParcelas', '6');  fill('debitoValor',  fmt(6));
