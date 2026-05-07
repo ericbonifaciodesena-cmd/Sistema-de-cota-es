@@ -2132,7 +2132,8 @@
       if (vigM) { fill('vigenciaInicio', toISO(vigM[1])); fill('vigenciaTermino', toISO(vigM[2])); }
 
       // ── SEGURADO ──────────────────────────────────────────────────
-      const nomeM = text.match(/Proponente:\s*([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ\s]+?)(?=\s+CPF|\s{3,}|\n)/i);
+      const nomeM = text.match(/Proponente:\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ\s]+?)\s+CPF:/i)
+                 || text.match(/Nome\s+do\s+Condutor:\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s]+?)(?=\s{2,}|\n)/i);
       if (nomeM) {
         const nome = nomeM[1].trim();
         fill('nome', nome);
