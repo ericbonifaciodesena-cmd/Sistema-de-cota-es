@@ -2088,17 +2088,6 @@
       window._debugText = text;
 
       const temValorDeterminado = text.includes('Valor Determinado');
-      // ── DEBUG (remover após diagnóstico) ──────────────────────────
-      console.log('HDI temValorDeterminado:', temValorDeterminado);
-      const idxCasco = text.search(/CASCO/i);
-      if (idxCasco >= 0) console.log('HDI CASCO ctx:', JSON.stringify(text.slice(idxCasco, idxCasco + 120)));
-      const idxAss = text.search(/ESPECIAL\s*AUTO|VIP\s*AUTO/i);
-      if (idxAss >= 0) console.log('HDI ASSIST ctx:', JSON.stringify(text.slice(Math.max(0, idxAss - 20), idxAss + 80)));
-      const idxCR = text.search(/DIAS?\s+CR|CARRO\s+RESERVA/i);
-      if (idxCR >= 0) console.log('HDI CR ctx:', JSON.stringify(text.slice(Math.max(0, idxCR - 20), idxCR + 80)));
-      const idxPag = text.search(/Cart[aã]o\s+de\s+Cr[eé]dito/i);
-      if (idxPag >= 0) console.log('HDI PAGTO ctx:', JSON.stringify(text.slice(idxPag, idxPag + 300)));
-      // ─────────────────────────────────────────────────────────────
 
       function fill(id, value) {
         if (!value) return;
@@ -2209,8 +2198,10 @@
         const linhaCasco = text.match(/CASCO\s+100,00%\s+FIPE\s+([\d\.,]+)\s+([\d\.,]+)\s+([\d\.,]+)\s+([\d\.,]+)/i);
         if (linhaCasco) document.getElementById('franquiaValor').value = 'R$ ' + linhaCasco[4];
       } else {
+        // Colunas novo formato: CASCO | 100,00% FIPE | <Franquia> | <Prêmio>
+        // grupo 1 = Franquia, grupo 2 = Prêmio
         const cascoM = text.match(/CASCO\s+100,00%\s+FIPE\s+([\d\.,]+)\s+([\d\.,]+)/i);
-        if (cascoM) document.getElementById('franquiaValor').value = 'R$ ' + cascoM[2];
+        if (cascoM) document.getElementById('franquiaValor').value = 'R$ ' + cascoM[1];
       }
 
       // ── COBERTURAS ESSENCIAIS ─────────────────────────────────────
@@ -2316,10 +2307,11 @@
       // Fallback: cálculo fixo 12x/6x/12x para formato antigo.
       let parcelasExtraidas = false;
       if (!temValorDeterminado) {
+        // Texto usa espaços entre seções, não newlines — regex sem \n
         const blocos = {
-          cartao: text.match(/Cart[aã]o\s+de\s+Cr[eé]dito\s+Plano\s+Valor[^\n]*\n([\s\S]+?)(?=D[eé]bito\s+Em\s+Conta|Carn[eê]|Assinatura)/i),
-          debito: text.match(/D[eé]bito\s+Em\s+Conta\s+Plano\s+Valor[^\n]*\n([\s\S]+?)(?=Carn[eê]|Assinatura|Cart[aã]o\s+de\s+Cr[eé]dito)/i),
-          carne:  text.match(/Carn[eê]\s+Plano\s+Valor[^\n]*\n([\s\S]+?)(?=Assinatura|ATEN[ÇC][ÃA]O|$)/i),
+          cartao: text.match(/Cart[aã]o\s+de\s+Cr[eé]dito\s+Plano\s+Valor[\s\S]{0,20}?\(R\$\)([\s\S]+?)(?=D[eé]bito\s+Em\s+Conta|Carn[eê]|Assinatura)/i),
+          debito: text.match(/D[eé]bito\s+Em\s+Conta\s+Plano\s+Valor[\s\S]{0,20}?\(R\$\)([\s\S]+?)(?=Carn[eê]|Assinatura|Cart[aã]o\s+de\s+Cr[eé]dito)/i),
+          carne:  text.match(/Carn[eê]\s+Plano\s+Valor[\s\S]{0,20}?\(R\$\)([\s\S]+?)(?=Assinatura|ATEN[ÇC][ÃA]O)/i),
         };
         const idMap = {
           cartao: ['cartaoParcelas', 'cartaoValor'],
