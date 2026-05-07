@@ -2088,6 +2088,17 @@
       window._debugText = text;
 
       const temValorDeterminado = text.includes('Valor Determinado');
+      // ── DEBUG (remover após diagnóstico) ──────────────────────────
+      console.log('HDI temValorDeterminado:', temValorDeterminado);
+      const idxCasco = text.search(/CASCO/i);
+      if (idxCasco >= 0) console.log('HDI CASCO ctx:', JSON.stringify(text.slice(idxCasco, idxCasco + 120)));
+      const idxAss = text.search(/ESPECIAL\s*AUTO|VIP\s*AUTO/i);
+      if (idxAss >= 0) console.log('HDI ASSIST ctx:', JSON.stringify(text.slice(Math.max(0, idxAss - 20), idxAss + 80)));
+      const idxCR = text.search(/DIAS?\s+CR|CARRO\s+RESERVA/i);
+      if (idxCR >= 0) console.log('HDI CR ctx:', JSON.stringify(text.slice(Math.max(0, idxCR - 20), idxCR + 80)));
+      const idxPag = text.search(/Cart[aã]o\s+de\s+Cr[eé]dito/i);
+      if (idxPag >= 0) console.log('HDI PAGTO ctx:', JSON.stringify(text.slice(idxPag, idxPag + 300)));
+      // ─────────────────────────────────────────────────────────────
 
       function fill(id, value) {
         if (!value) return;
