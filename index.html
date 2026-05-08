@@ -2391,7 +2391,9 @@
       const nascSegM = text.match(/(\d{2}\/\d{2}\/\d{4})\s+das\s+24h/i);
       if (nascSegM) fill('dataNasc', toISO(nascSegM[1]));
 
-      const cepM = text.match(/(\d{5}-\d{3})\s+\d{2}\s+N[aã]o/i);
+      // CEP aparece após Cód. Contrato (11 zeros) na sequência de valores
+      const cepM = text.match(/\d{11}\s+(\d{5}-\d{3})/i)
+                || text.match(/(\d{5}-\d{3})\s+(?:Sem\s+B[oô]nus|Com\s+B[oô]nus|\d{2}\s+N)/i);
       if (cepM) fill('cep', cepM[1]);
 
       if (/Particular/i.test(text)) fill('uso', 'Particular');
@@ -2488,11 +2490,12 @@
       }
 
       // ── COBERTURAS ADICIONAIS ─────────────────────────────────────
-      const assistM = text.match(/Assist\s+Auto\s+Dia\/Noite\s*-\s*Passeio\s+(\d+)\s*KM/i)
+      const assistM = text.match(/Assist\s+(?:Auto\s+)?Dia\/Noite\s+(\d+)\s*Km/i)
+                   || text.match(/Assist\s+Auto\s+Dia\/Noite\s*-\s*Passeio\s+(\d+)\s*KM/i)
                    || text.match(/Assist\s+Auto[^(]*?(Ilimitado)/i);
       if (assistM) {
         check('chkAssistencia', true);
-        const km = assistM[1];
+        const km = assistM[1] || 'Ilimitado';
         fill('assistenciaKm', km);
         fill('lblAssistencia', 'Assistência 24h ' + (/ilimitado/i.test(km) ? 'Ilimitada' : km + 'km'));
       }
@@ -2545,36 +2548,24 @@
       if (franqItens.length) fill('franquias', franqItens.join(' | '));
 
       // ── FRANQUIA PRINCIPAL ────────────────────────────────────────
-      const franqPrinc = text.match(/Ve[ií]culo[:\s]+([\d\.,]+)\s*\(25/i);
+      // Primeiro valor numérico na seção FRANQUIAS (R$) = Franquia do Veículo
+      const franqPrinc = text.match(/FRANQUIAS\s*\(R\$\)[\s\S]{0,200}?(\d[\d\.]*,\d{2})/i);
       if (franqPrinc) fill('franquiaValor', 'R$ ' + franqPrinc[1]);
 
       // ── VALORES / PAGAMENTOS ──────────────────────────────────────
       const totalM = text.match(/TOTAL\s+A\s+PAGAR[:\s]+([\d\.,]+)/i);
       if (totalM) {
-        fill('premioTotal', 'R$ ' + totalM[1]);
-        fill('aVista',      'R$ ' + totalM[1]);
-      }
-
-      function melhorParcela(bloco) {
-        const matches = [...bloco.matchAll(/(\d+)x\s+R\$\s*([\d\.,]+)/g)];
-        if (!matches.length) return null;
-        return matches.reduce((best, cur) => parseInt(cur[1]) > parseInt(best[1]) ? cur : best);
-      }
-
-      const cartaoSecM = text.match(/Cart[aã]o\s+de\s+Cr[eé]dito\s+Bradesco([\s\S]{0,600}?)(?=D[eé]bito\s+em\s+Conta|Carn[eê]|$)/i);
-      if (cartaoSecM) {
-        const p = melhorParcela(cartaoSecM[0]);
-        if (p) { fill('cartaoParcelas', p[1]); fill('cartaoValor', p[2]); }
-      }
-      const debitoSecM = text.match(/D[eé]bito\s+em\s+Conta([\s\S]{0,400}?)(?=Carn[eê]|Cart[aã]o|$)/i);
-      if (debitoSecM) {
-        const p = melhorParcela(debitoSecM[0]);
-        if (p) { fill('debitoParcelas', p[1]); fill('debitoValor', p[2]); }
-      }
-      const boletoSecM = text.match(/Carn[eê]([\s\S]{0,400}?)(?=D[eé]bito|Cart[aã]o|$)/i);
-      if (boletoSecM) {
-        const p = melhorParcela(boletoSecM[0]);
-        if (p) { fill('boletoParcelas', p[1]); fill('boletoValor', p[2]); }
+        const total = totalM[1];
+        const num   = parseFloat(total.replace(/\./g,'').replace(',','.'));
+        fill('premioTotal', 'R$ ' + total);
+        fill('aVista',      'R$ ' + total);
+        // Bradesco: fixo 10x cartão, 6x débito, 4x boleto (sem juros)
+        if (num > 0) {
+          const fmt = n => (num / n).toFixed(2).replace('.', ',');
+          fill('cartaoParcelas', '10'); fill('cartaoValor', fmt(10));
+          fill('debitoParcelas', '6');  fill('debitoValor',  fmt(6));
+          fill('boletoParcelas', '4');  fill('boletoValor',  fmt(4));
+        }
       }
 
       toggleScreen('form');
