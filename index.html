@@ -2510,23 +2510,38 @@
       }
       if (/\(125\)\s*Repare\s+F[aá]cil\s*[-–]\s*Sup\.\s*Martelinho/i.test(text)) {
         check('chkPequenosReparos', true);
-        fill('lblPequenosReparos', 'Pequenos Reparos (Martelinho)');
+        fill('lblPequenosReparos', 'Pequenos Reparos');
       }
-      if (/\(126\)\s*Repare\s+F[aá]cil\s*[-–]\s*Rep\.\s*R[aá]pido/i.test(text)) {
+      const parachoqueM = text.match(/Troca\s+de\s+Para-?choque[:\s]+([\d\.,]+)/i);
+      if ((parachoqueM && parseFloat(parachoqueM[1].replace(/\./g,'').replace(',','.')) > 0) ||
+          /\(126\)\s*Repare\s+F[aá]cil\s*[-–]\s*Rep\.\s*R[aá]pido/i.test(text)) {
         check('chkParachoque', true);
         fill('lblParachoque', 'Troca de Para-choque');
       }
-      if (/Rodas,\s*Pneus\s+e\s+Suspens[aã]o/i.test(text)) {
+      const rodasM = text.match(/Rodas,\s*Pneus\s+e\s+Suspens[aã]o[:\s]+([\d\.,]+)/i);
+      if (rodasM && parseFloat(rodasM[1].replace(/\./g,'').replace(',','.')) > 0) {
         check('chkRodas', true);
         fill('lblRodas', 'Proteção de Rodas, Pneus e Suspensão');
       }
 
       // ── FRANQUIAS DE SERVIÇOS ─────────────────────────────────────
+      const franqItens = [];
+      const toVal = v => parseFloat(v.replace(/\./g,'').replace(',','.'));
+
+      // Bloco 1: títulos separados dos valores (extração posicional)
+      // Ordem: [0]=Veículo, [1]=KitGás, [2]=Para-Brisa, [3]=Equip, [4]=Carroceria,
+      //        [5]=VidrosLaterais, [6]=Lanternas, [7]=VidroTraseiro, [8]=RCF
+      const f1Sec = text.match(/FRANQUIAS\s*\(R\$\)([\s\S]+?)(?=Lanternas\s+de\s+LED|Far[oó]is|Super\s+Martelinho|Reparo\s+R[aá]pido|Retrovisores)/i);
+      if (f1Sec) {
+        const f1Nums = f1Sec[1].match(/\d{1,3}(?:\.\d{3})*,\d{2}/g) || [];
+        if (f1Nums[2] && toVal(f1Nums[2]) > 0) franqItens.push('Para-Brisa: R$ ' + f1Nums[2]);
+        if (f1Nums[5] && toVal(f1Nums[5]) > 0) franqItens.push('Vidros Laterais: R$ ' + f1Nums[5]);
+        if (f1Nums[6] && toVal(f1Nums[6]) > 0) franqItens.push('Lanternas: R$ ' + f1Nums[6]);
+        if (f1Nums[7] && toVal(f1Nums[7]) > 0) franqItens.push('Vidro Traseiro: R$ ' + f1Nums[7]);
+      }
+
+      // Bloco 2: valores adjacentes aos títulos
       const franqMap = [
-        ['Para-Brisa',          /Para-Brisa[:\s]+([\d\.,]+)/i],
-        ['Vidros Laterais',     /Vidros\s+Laterais[:\s]+([\d\.,]+)/i],
-        ['Lanternas',           /Lanternas[:\s]+([\d\.,]+)/i],
-        ['Vidro Traseiro',      /Vidro\s+Traseiro[:\s]+([\d\.,]+)/i],
         ['Lanternas LED',       /Lanternas\s+de\s+LED[:\s]+([\d\.,]+)/i],
         ['Lanternas Auxiliares',/Lanternas\s+Auxiliares[:\s]+([\d\.,]+)/i],
         ['Faróis',              /Far[oó]is[:\s]+([\d\.,]+)/i],
@@ -2537,11 +2552,10 @@
         ['Super Martelinho',    /Super\s+Martelinho[:\s]+([\d\.,]+)/i],
         ['Reparo Rápido',       /Reparo\s+R[aá]pido[:\s]+([\d\.,]+)/i],
       ];
-      const franqItens = [];
       for (const [nome, rx] of franqMap) {
         const m = text.match(rx);
         if (m) {
-          const val = parseFloat(m[1].replace(/\./g,'').replace(',','.'));
+          const val = toVal(m[1]);
           if (val > 0) franqItens.push(nome + ': R$ ' + m[1]);
         }
       }
