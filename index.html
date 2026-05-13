@@ -2627,7 +2627,7 @@
       // ── SEGURADO ───────────────────────────────────────────────
       const seguradoM = text.match(/Proponente\s*\/\s*Segurado\(a\)\s+Nascimento\s+CPF\s+([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+(\d{2}\/\d{2}\/\d{4})\s+([\d\.\-]+)/i);
       if (seguradoM) {
-        fill('nome',     seguradoM[1].trim());
+        fill('nome',     seguradoM[1].trim().replace(/^Proponente\s+/i, '').trim());
         fill('dataNasc', toISO(seguradoM[2]));
         fill('cpf',      seguradoM[3].trim());
       }
@@ -2639,7 +2639,7 @@
       if (condCpfM)  fill('condutorCpf',     condCpfM[1].trim());
       // data nasc e CPF do segurado vão também para o condutor quando for o mesmo
       if (seguradoM) {
-        if (!condNomeM) fill('condutorNome',    seguradoM[1].trim());
+        if (!condNomeM) fill('condutorNome',    seguradoM[1].trim().replace(/^Proponente\s+/i, '').trim());
         if (!condCpfM)  fill('condutorCpf',     seguradoM[3].trim());
         fill('condutorDataNasc', toISO(seguradoM[2]));
       }
@@ -2656,7 +2656,7 @@
       }
 
       // ── VEÍCULO ────────────────────────────────────────────────
-      const veicM = text.match(/\d+\s*-\s*-?\s*([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][^\d]+?)\s+(\d{4})\s*\/\s*(\d{4})/i);
+      const veicM = text.match(/\d+\s*-\s*-?\s*([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ].+?)\s+(\d{4})\s*\/\s*(\d{4})/i);
       if (veicM) {
         fill('modelo', veicM[1].trim());
         fill('ano',    veicM[3]);   // ano modelo
@@ -2682,6 +2682,9 @@
 
       const appM = text.match(/ACIDENTES PESSOAIS PASSAGEIROS\s+R\$\s*([\d\.,]+)/i);
       if (appM) { check('chkApp', true); fill('valApp', 'R$ ' + appM[1]); }
+
+      const defesaM = text.match(/GASTOS COM DEFESA\s+R\$\s*([\d\.,]+)/i);
+      if (defesaM) { check('chkDefesa', true); fill('lblDefesa', 'Gastos com Defesa'); fill('valDefesa', 'R$ ' + defesaM[1]); }
 
       if (/EXTENS[AÃ]O DE PER[IÍ]METRO COMPLETO/i.test(text)) {
         check('chkCartaVerdeMat', true);  fill('valCartaVerdeMat', 'US$ 20.000,00');
