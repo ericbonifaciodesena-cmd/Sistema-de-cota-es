@@ -1212,16 +1212,17 @@
       const placaM = text.match(/\b([A-Z]{3}-?\d[A-Z0-9]\d{2})\b/);
       if (placaM) fill('placa', placaM[1]);
 
-      // Ano: primeiro (19|20)XX após a placa
+      // Ano: extração em ordem de prioridade
       let anoVal = '';
-      if (placaM) {
+      // P1: ano imediatamente antes do fabricante no bloco de valores (ex: "2027 HYUNDAI")
+      const _mfAnnoRe = /\b((19|20)\d{2})\s+(?:HYUNDAI|TOYOTA|HONDA|VOLKSWAGEN|VW|CHEVROLET|FIAT|FORD|NISSAN|RENAULT|JEEP|BMW|MERCEDES|MITSUBISHI|KIA|PEUGEOT|CITRO[EÊ]N|TRIUMPH)\b/i;
+      const _annoMf = text.match(_mfAnnoRe);
+      if (_annoMf) anoVal = _annoMf[1];
+      // P2: primeiro (19|20)XX após a placa
+      if (!anoVal && placaM) {
         const afterPlaca = text.slice(text.indexOf(placaM[1]) + placaM[1].length);
         const anoM = afterPlaca.match(/\b((19|20)\d{2})\b/);
         if (anoM) anoVal = anoM[1];
-      }
-      if (!anoVal) {
-        const anoFb = text.match(/\b((19|20)\d{2})\b/);
-        if (anoFb) anoVal = anoFb[1];
       }
       fill('ano', anoVal);
 
