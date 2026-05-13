@@ -2724,10 +2724,9 @@
       }
 
       // ── FRANQUIA PRINCIPAL ─────────────────────────────────────
-      // Busca o valor da franquia parcial na seção COMPREENSIVA ou na linha "Franquia Parcial"
-      const franqParc = text.match(/Franquia\s+Parcial[^\d]*([\d\.]+,\d{2})/i)
-                     || text.match(/COMPREENSIVA[\s\S]{0,120}?Franquia[^\d]*([\d\.]+,\d{2})/i)
-                     || text.match(/COMPREENSIVA\s+100[.,]00%\s+R\$\s*([\d\.,]+)/i);
+      // Linha: "COMPREENSIVA 100.00% R$ [LMI] 0.00% 0.00% R$ [FRANQUIA]"
+      // O 2º R$ é a franquia; o 1º é o LMI do veículo.
+      const franqParc = text.match(/COMPREENSIVA\s+100[.,]00%\s+R\$\s*[\d\.,]+[\s\d%,.]+R\$\s*([\d\.,]+)/i);
       if (franqParc) fill('franquiaValor', 'R$ ' + franqParc[1]);
 
       // ── VALORES / PAGAMENTOS ───────────────────────────────────
