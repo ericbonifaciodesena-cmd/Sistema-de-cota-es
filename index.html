@@ -2683,7 +2683,7 @@
       const appM = text.match(/ACIDENTES PESSOAIS PASSAGEIROS\s+R\$\s*([\d\.,]+)/i);
       if (appM) { check('chkApp', true); fill('valApp', 'R$ ' + appM[1]); }
 
-      const defesaM = text.match(/GASTOS COM DEFESA\s+R\$\s*([\d\.,]+)/i);
+      const defesaM = text.match(/(?:GASTOS COM DEFESA|CUSTOS DE DEFESA AUTO)\s+R\$\s*([\d\.,]+)/i);
       if (defesaM) { check('chkDefesa', true); fill('lblDefesa', 'Gastos com Defesa'); fill('valDefesa', 'R$ ' + defesaM[1]); }
 
       if (/EXTENS[AÃ]O DE PER[IÍ]METRO COMPLETO/i.test(text)) {
@@ -2724,47 +2724,24 @@
       }
 
       // ── FRANQUIA PRINCIPAL ─────────────────────────────────────
-      const cascoM = text.match(/COMPREENSIVA\s+100[.,]00%\s+R\$\s*([\d\.,]+)/i);
-      if (cascoM) fill('franquiaValor', 'R$ ' + cascoM[1]);
+      // Busca o valor da franquia parcial na seção COMPREENSIVA ou na linha "Franquia Parcial"
+      const franqParc = text.match(/Franquia\s+Parcial[^\d]*([\d\.]+,\d{2})/i)
+                     || text.match(/COMPREENSIVA[\s\S]{0,120}?Franquia[^\d]*([\d\.]+,\d{2})/i)
+                     || text.match(/COMPREENSIVA\s+100[.,]00%\s+R\$\s*([\d\.,]+)/i);
+      if (franqParc) fill('franquiaValor', 'R$ ' + franqParc[1]);
 
       // ── VALORES / PAGAMENTOS ───────────────────────────────────
       const premioM = text.match(/Pr[eê]mio Total:\s*R\$\s*([\d\.,]+)/i);
       if (premioM) {
-        fill('premioTotal', 'R$ ' + premioM[1]);
-        fill('aVista', 'R$ ' + premioM[1]);
-      }
-
-      // Cartão Porto Bank (melhor opção sem juros)
-      const cartaoBlock = text.match(/PORTO BANK\s*\(AQUISI[ÇC][ÃA]O\)[\s\S]+?(?=TODAS CART[ÃA]O DE CR[EÉ]DITO PORTO BANK SEM|D[EÉ]BITO|BOLETO|CL[AÁ]USULAS)/i);
-      if (cartaoBlock) {
-        const parcelas = [...cartaoBlock[0].matchAll(/(\d+)x[\s\S]{0,40}?R\$\s*([\d\.,]+)\s*\(s\/juros/gi)];
-        if (parcelas.length) {
-          const ultima = parcelas[parcelas.length - 1];
-          fill('cartaoParcelas', ultima[1]);
-          fill('cartaoValor', ultima[2]);
-        }
-      }
-
-      // Débito em conta
-      const debitoBlock = text.match(/D[EÉ]BITO C\.\s*CORRENTE[\s\S]+?(?=1 BOLETO|CL[AÁ]USULAS)/i);
-      if (debitoBlock) {
-        const parcelas = [...debitoBlock[0].matchAll(/(\d+)x[\s\S]{0,40}?R\$\s*([\d\.,]+)\s*\(s\/juros/gi)];
-        if (parcelas.length) {
-          const ultima = parcelas[parcelas.length - 1];
-          fill('debitoParcelas', ultima[1]);
-          fill('debitoValor', ultima[2]);
-        }
-      }
-
-      // Boleto
-      const boletoBlock = text.match(/1 BOLETO\s*\/\s*DEMAIS C\.\s*CORRENTE[\s\S]+?(?=1 D[EÉ]BITO|CL[AÁ]USULAS)/i);
-      if (boletoBlock) {
-        const parcelas = [...boletoBlock[0].matchAll(/(\d+)x[\s\S]{0,40}?R\$\s*([\d\.,]+)\s*\(s\/juros/gi)];
-        if (parcelas.length) {
-          const ultima = parcelas[parcelas.length - 1];
-          fill('boletoParcelas', ultima[1]);
-          fill('boletoValor', ultima[2]);
-        }
+        const total = premioM[1];
+        const num   = parseFloat(total.replace(/\./g,'').replace(',','.'));
+        fill('premioTotal', 'R$ ' + total);
+        fill('aVista', 'R$ ' + total);
+        // Porto Seguro: 10x cartão, 10x débito, 4x boleto (sem juros)
+        const fmt = n => (num / n).toFixed(2).replace('.', ',');
+        fill('cartaoParcelas', '10'); fill('cartaoValor', fmt(10));
+        fill('debitoParcelas', '10'); fill('debitoValor',  fmt(10));
+        fill('boletoParcelas', '4');  fill('boletoValor',  fmt(4));
       }
 
       toggleScreen('form');
