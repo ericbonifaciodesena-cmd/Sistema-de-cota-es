@@ -2079,7 +2079,9 @@
         parseHDI(text);
       } else if (/Bradesco Auto|BRADESCO|bradesco/i.test(text)) {
         parseBradesco(text);
-      } else if (text.includes('PORTO SEGURO') || text.includes('Porto Seguro') || text.includes('PortoSeguro')) {
+      } else if (text.includes('PORTO SEGURO') || text.includes('Porto Seguro') || text.includes('PortoSeguro') ||
+                 /\bAUTO\s+(?:MULHER|S[EÊ]NIOR|PREMIUM|TRADICIONAL)\b/i.test(text) ||
+                 /61\.198\.164/.test(text)) {
         parsePortoSeguro(text);
       } else {
         alert('Seguradora não reconhecida. Por favor preencha os campos manualmente.');
