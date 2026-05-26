@@ -2632,9 +2632,10 @@
       }
 
       // ── SEGURADO ───────────────────────────────────────────────
-      // Novo: "Segurado(a) Nascimento CPF [nome] [data] [cpf]"
-      // Velho: "Proponente / Segurado(a) Nascimento CPF [nome] [data] [cpf]"
-      const segM = text.match(/Segurado\(a\)\s+Nascimento\s+CPF\s+([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+([\d]{2}\/[\d]{2}\/[\d]{4})\s+([\d\.\-]+)/i)
+      // Azul Tradicional: "[NOME]  Segurado(a)   Nascimento  [DATA]  CPF  [CPF]"
+      // Auto Mulher:      "Proponente / Segurado(a)  Nascimento  CPF  [NOME]  [DATA]  [CPF]"
+      const segM = text.match(/([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+Segurado\(a\)\s+Nascimento\s+([\d]{2}\/[\d]{2}\/[\d]{4})\s+CPF\s+([\d\.\-]+)/i)
+                || text.match(/Segurado\(a\)\s+Nascimento\s+CPF\s+([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+([\d]{2}\/[\d]{2}\/[\d]{4})\s+([\d\.\-]+)/i)
                 || text.match(/Proponente\s*\/\s*Segurado\(a\)\s+Nascimento\s+CPF\s+([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+([\d]{2}\/[\d]{2}\/[\d]{4})\s+([\d\.\-]+)/i);
       if (segM) {
         fill('nome',     segM[1].trim().replace(/^(?:Proponente|Segurado[^\s]*)\s+/i, '').trim());
@@ -2643,44 +2644,47 @@
       }
 
       // ── CONDUTOR PRINCIPAL ─────────────────────────────────────
-      // Novo: "Condutor Nascimento CPF [nome] [data] [cpf]"
-      // Velho: "Nome do principal Condutor: [nome] CPF: [cpf]"
-      const condM = text.match(/Condutor\s+Nascimento\s+CPF\s+([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+([\d]{2}\/[\d]{2}\/[\d]{4})\s+([\d\.\-]+)/i);
-      if (condM) {
-        fill('condutorNome',     condM[1].trim());
-        fill('condutorDataNasc', toISO(condM[2]));
-        fill('condutorCpf',      condM[3].trim());
+      // Azul Tradicional: "[NOME] [CPF] [CEP]  Condutor   Nascimento  [DATA]  CPF  CEP de pernoite"
+      // Auto Mulher:      "Nome do principal Condutor: [NOME]  CPF: [CPF]"
+      const condAzulM = text.match(/([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+([\d]{3}\.[\d]{3}\.[\d]{3}-[\d]{2})\s+[\d]{5}-?[\d]{3}\s+Condutor\s+Nascimento\s+([\d]{2}\/[\d]{2}\/[\d]{4})/i);
+      if (condAzulM) {
+        fill('condutorNome',     condAzulM[1].trim());
+        fill('condutorCpf',      condAzulM[2].trim());
+        fill('condutorDataNasc', toISO(condAzulM[3]));
       } else {
-        // velho layout
+        // Auto Mulher / velho layout
         const condNomeM = text.match(/Nome do principal Condutor:\s*([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+CPF/i);
         const condCpfM  = text.match(/Nome do principal Condutor:[\s\S]+?CPF:\s*([\d\.\-]+)/i);
         if (condNomeM) fill('condutorNome', condNomeM[1].trim());
         if (condCpfM)  fill('condutorCpf',  condCpfM[1].trim());
         if (segM) fill('condutorDataNasc', toISO(segM[2]));
       }
-      // Preenche condutor com dados do segurado quando for o mesmo (sem condutor explícito)
-      if (!condM && segM) {
-        if (!document.getElementById('condutorNome')?.value) fill('condutorNome', segM[1].trim().replace(/^(?:Proponente|Segurado[^\s]*)\s+/i, '').trim());
-        if (!document.getElementById('condutorCpf')?.value)  fill('condutorCpf',  segM[3].trim());
+      // Fallback: copia dados do segurado se condutor não foi encontrado
+      if (!condAzulM && !document.getElementById('condutorNome')?.value && segM) {
+        fill('condutorNome', segM[1].trim().replace(/^(?:Proponente|Segurado[^\s]*)\s+/i, '').trim());
+        fill('condutorCpf',  segM[3].trim());
       }
 
-      // CEP — novo: "CEP de pernoite 88880-000"  |  velho: "CEP PERNOITE: XXXXX-XXX"
-      const cepM = text.match(/CEP\s+(?:de\s+pernoite|PERNOITE)[:\s]*([\d]{5})-?([\d]{3})/i);
-      if (cepM) fill('cep', cepM[1] + '-' + cepM[2]);
+      // CEP — Azul Tradicional: "[CEP]  Condutor  Nascimento" (valor antes do rótulo)
+      //       Auto Mulher:      "CEP PERNOITE: XXXXX-XXX"
+      const cepM = text.match(/([\d]{5}-[\d]{3})\s+Condutor\s+Nascimento/i)
+                || text.match(/CEP\s+(?:de\s+pernoite|PERNOITE)[:\s]*([\d]{5})-?([\d]{3})/i);
+      if (cepM) fill('cep', cepM[2] ? cepM[1] + '-' + cepM[2] : cepM[1]);
 
       // Uso — novo: "Tipo de uso Particular"  |  velho: "Tipo do Uso: PARTICULAR"
       const usoM = text.match(/Tipo\s+(?:de|do)\s+[Uu]so[:\s]+([^\n\r]+)/i);
       if (usoM && /particular/i.test(usoM[1])) fill('uso', 'Particular');
 
       // ── VEÍCULO ────────────────────────────────────────────────
-      // Novo: "Placa Chassi Veículo [placa] [chassi] [cod] - - [modelo] [anofab] / [anomod]"
-      const veicBlocoM = text.match(/Placa\s+Chassi\s+Ve[ií]culo[\s\S]+?([A-Z0-9]{7,8})\s+([A-Z0-9]{17})\s+[\d]+\s*-\s*-?\s*([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ].+?)\s+([\d]{4})\s*\/\s*([\d]{4})/i);
-      if (veicBlocoM) {
-        fill('placa',  veicBlocoM[1].trim());
-        fill('modelo', veicBlocoM[3].trim());
-        fill('ano',    veicBlocoM[5]);
+      // Azul Tradicional: "[COD] - - [MODELO]  Veículo  [PLACA]  Placa  [CHASSI]  Chassi  [ANOFAB] / [ANOMOD]  Ano"
+      // Auto Mulher:      "Placa  Chassi  [PLACA]  [CHASSI]  [COD] - - [MODELO]  [ANOFAB] / [ANOMOD]"
+      const veicAzulM = text.match(/[\d]+\s*-\s*-?\s*([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ].+?)\s+Ve[ií]culo\s+([A-Z0-9]{7,8})\s+Placa\s+[A-Z0-9]{17}\s+Chassi\s+[\d]{4}\s*\/\s*([\d]{4})\s+Ano/i);
+      if (veicAzulM) {
+        fill('modelo', veicAzulM[1].trim());
+        fill('placa',  veicAzulM[2].trim());
+        fill('ano',    veicAzulM[3]);
       } else {
-        // velho: placa em qualquer lugar + modelo antes do fabricante
+        // Auto Mulher / velho layout
         const placaM = text.match(/Placa\s+Chassi\s+([A-Z0-9]{7,8})\s+/i);
         if (placaM) fill('placa', placaM[1]);
         const veicM = text.match(/\d+\s*-\s*-?\s*([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ].+?)\s+([\d]{4})\s*\/\s*([\d]{4})/i);
@@ -2765,11 +2769,12 @@
       }
 
       // ── FRANQUIA PRINCIPAL ─────────────────────────────────────
-      // Novo: "Compreensiva ... R$ [LMI] (25% da Obrigatória) R$ [FRANQUIA]"
-      const franqNovoM = text.match(/Compreensiva[\s\S]{0,120}?R\$\s*[\d\.,]+\s*\(25%[^)]*\)\s*R\$\s*([\d\.,]+)/i);
-      // Velho: "COMPREENSIVA 100.00% R$ [LMI] 0.00% 0.00% R$ [FRANQUIA]"
+      // Azul Tradicional: "Compreensiva... 100.00%  R$ [PRÊMIO] R$ [FRANQUIA] (25% da Obrigatória)"
+      //   → prêmio vem primeiro, franquia é o R$ antes de "(25%"
+      const franqAzulM = text.match(/Compreensiva[\s\S]{0,200}?R\$\s*[\d\.,]+\s+R\$\s*([\d\.,]+)\s*\(25%/i);
+      // Auto Mulher: "COMPREENSIVA 100.00% R$ [LMI] 0.00% 0.00% R$ [FRANQUIA]"
       const franqVelhoM = text.match(/COMPREENSIVA\s+100[.,]00%\s+R\$\s*[\d\.,]+[\s\d%,.]+R\$\s*([\d\.,]+)/i);
-      const franqVal = franqNovoM || franqVelhoM;
+      const franqVal = franqAzulM || franqVelhoM;
       if (franqVal) fill('franquiaValor', 'R$ ' + franqVal[1]);
 
       // ── VALORES / PAGAMENTOS ───────────────────────────────────
