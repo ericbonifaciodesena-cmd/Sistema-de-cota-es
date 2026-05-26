@@ -2616,11 +2616,11 @@
       fill('seguradora', 'Porto Seguro');
 
       // Nº Cotação — novo layout: "Orçamento\n5825995121"  |  velho: "Orçamento: 5709282278-0-1"
-      const cotM = text.match(/Or[çc]amento\s*[:\n]\s*([\d][\d\-]*)/i);
+      const cotM = text.match(/Or[çc]amento\s+([\d][\d\-]*)/i);
       if (cotM) fill('numeroCotacao', cotM[1]);
 
       // Validade — novo: "Validade\n10/06/2026"  |  velho: "Orçamento válido 28/05/2026"
-      const validM = text.match(/Validade\s*[:\n]\s*([\d]{2}\/[\d]{2}\/[\d]{4})/i)
+      const validM = text.match(/Validade\s+([\d]{2}\/[\d]{2}\/[\d]{4})/i)
                   || text.match(/Or[çc]amento v[aá]lido\s*([\d\/]+)/i);
       if (validM) fill('validadeCotacao', toISO(validM[1]));
 
@@ -2638,7 +2638,7 @@
                 || text.match(/Segurado\(a\)\s+Nascimento\s+CPF\s+([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+([\d]{2}\/[\d]{2}\/[\d]{4})\s+([\d\.\-]+)/i)
                 || text.match(/Proponente\s*\/\s*Segurado\(a\)\s+Nascimento\s+CPF\s+([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+([\d]{2}\/[\d]{2}\/[\d]{4})\s+([\d\.\-]+)/i);
       if (segM) {
-        fill('nome',     segM[1].trim().replace(/^(?:Proponente|Segurado[^\s]*)\s+/i, '').trim());
+        fill('nome',     segM[1].trim().replace(/^(?:Dados\s+Gerais|Proponente|Segurado[^\s]*)\s+/i, '').trim());
         fill('dataNasc', toISO(segM[2]));
         fill('cpf',      segM[3].trim());
       }
@@ -2648,7 +2648,7 @@
       // Auto Mulher:      "Nome do principal Condutor: [NOME]  CPF: [CPF]"
       const condAzulM = text.match(/([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+([\d]{3}\.[\d]{3}\.[\d]{3}-[\d]{2})\s+[\d]{5}-?[\d]{3}\s+Condutor\s+Nascimento\s+([\d]{2}\/[\d]{2}\/[\d]{4})/i);
       if (condAzulM) {
-        fill('condutorNome',     condAzulM[1].trim());
+        fill('condutorNome',     condAzulM[1].trim().replace(/^(?:Seguro\s+do\s+corretor\s+\S+\s+|Dados\s+Gerais\s+)/i, '').trim());
         fill('condutorCpf',      condAzulM[2].trim());
         fill('condutorDataNasc', toISO(condAzulM[3]));
       } else {
@@ -2661,7 +2661,7 @@
       }
       // Fallback: copia dados do segurado se condutor não foi encontrado
       if (!condAzulM && !document.getElementById('condutorNome')?.value && segM) {
-        fill('condutorNome', segM[1].trim().replace(/^(?:Proponente|Segurado[^\s]*)\s+/i, '').trim());
+        fill('condutorNome', segM[1].trim().replace(/^(?:Dados\s+Gerais|Proponente|Segurado[^\s]*)\s+/i, '').trim());
         fill('condutorCpf',  segM[3].trim());
       }
 
