@@ -2678,7 +2678,7 @@
       // ── VEÍCULO ────────────────────────────────────────────────
       // Azul Tradicional: "[COD] - - [MODELO]  Veículo  [PLACA]  Placa  [CHASSI]  Chassi  [ANOFAB] / [ANOMOD]  Ano"
       // Auto Mulher:      "Placa  Chassi  [PLACA]  [CHASSI]  [COD] - - [MODELO]  [ANOFAB] / [ANOMOD]"
-      const veicAzulM = text.match(/[\d]+\s*-\s*-?\s*([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ].+?)\s+Ve[ií]culo\s+([A-Z0-9]{7,8})\s+Placa\s+[A-Z0-9]{17}\s+Chassi\s+[\d]{4}\s*\/\s*([\d]{4})\s+Ano/i);
+      const veicAzulM = text.match(/[\d]+\s*-\s*-\s*([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ].+?)\s+Ve[ií]culo\s+([A-Z0-9]{7,8})\s+Placa\s+[A-Z0-9]{17}\s+Chassi\s+[\d]{4}\s*\/\s*([\d]{4})\s+Ano/i);
       if (veicAzulM) {
         fill('modelo', veicAzulM[1].trim());
         fill('placa',  veicAzulM[2].trim());
