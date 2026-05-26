@@ -2069,6 +2069,7 @@
 
     // ── Dispatcher ────────────────────────────────────────────────
     function parsePDF(text) {
+      window._debugText = text;
       if (text.includes('Tokio Marine') || text.includes('TOKIO MARINE')) {
         parseTokioMarine(text);
       } else if (/yelum/i.test(text)) {
