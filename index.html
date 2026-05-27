@@ -2081,6 +2081,7 @@
       } else if (/Bradesco Auto|BRADESCO|bradesco/i.test(text)) {
         parseBradesco(text);
       } else if (text.includes('PORTO SEGURO') || text.includes('Porto Seguro') || text.includes('PortoSeguro') ||
+                 /\bAzul\s+Seguros\b|\bAZUL\s+SEGUROS\b/i.test(text) ||
                  /\bAUTO\s+(?:MULHER|S[EÊ]NIOR|PREMIUM|TRADICIONAL)\b/i.test(text) ||
                  /61\.198\.164/.test(text)) {
         parsePortoSeguro(text);
@@ -2613,7 +2614,8 @@
       }
 
       // ── IDENTIFICAÇÃO ──────────────────────────────────────────
-      fill('seguradora', 'Porto Seguro');
+      const isAzul = /\bAzul\s+Seguros\b|\bAZUL\s+SEGUROS\b/i.test(text);
+      fill('seguradora', isAzul ? 'Azul Seguros' : 'Porto Seguro');
 
       // Nº Cotação — novo layout: "Orçamento\n5825995121"  |  velho: "Orçamento: 5709282278-0-1"
       const cotM = text.match(/Or[çc]amento\s+([\d][\d\-]*)/i);
