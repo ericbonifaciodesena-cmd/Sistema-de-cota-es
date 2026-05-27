@@ -2678,12 +2678,12 @@
       if (usoM && /particular/i.test(usoM[1])) fill('uso', 'Particular');
 
       // ── VEÍCULO ────────────────────────────────────────────────
-      // Azul Tradicional: "[COD] - - [MODELO]  Veículo  [PLACA]  Placa  [CHASSI]  Chassi  [ANOFAB] / [ANOMOD]  Ano"
+      // Azul Tradicional: "[COD] - - [MODELO]  Veículo  [PLACA|-]  Placa  [CHASSI]  Chassi  [ANOFAB] / [ANOMOD]  Ano"
       // Auto Mulher:      "Placa  Chassi  [PLACA]  [CHASSI]  [COD] - - [MODELO]  [ANOFAB] / [ANOMOD]"
-      const veicAzulM = text.match(/[\d]+\s*-\s*-\s*([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ].+?)\s+Ve[ií]culo\s+([A-Z0-9]{7,8})\s+Placa\s+[A-Z0-9]{17}\s+Chassi\s+[\d]{4}\s*\/\s*([\d]{4})\s+Ano/i);
+      const veicAzulM = text.match(/[\d]+\s*-\s*-\s*([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ].+?)\s+Ve[ií]culo\s+(-|[A-Z0-9]{3,8})\s+Placa\s+[A-Z0-9]{11,17}\s+Chassi\s+[\d]{4}\s*\/\s*([\d]{4})\s+Ano/i);
       if (veicAzulM) {
         fill('modelo', veicAzulM[1].trim());
-        fill('placa',  veicAzulM[2].trim());
+        if (veicAzulM[2] !== '-') fill('placa', veicAzulM[2].trim());
         fill('ano',    veicAzulM[3]);
       } else {
         // Auto Mulher / velho layout
@@ -2731,18 +2731,16 @@
       }
 
       // ── COBERTURAS ADICIONAIS ──────────────────────────────────
-      // Assistência
-      const assM = text.match(/Assist[eê]ncia\s*[-–]\s*(\d+)\s*Km/i)
-                || text.match(/ASSIST[EÊ]NCIA KM ILIMITADO/i);
-      if (assM) {
+      // Assistência — forward: "Assistência - NNN Km" | reverse (Azul): "NNN Km  Assistência"
+      const assM = text.match(/Assist[eê]ncia\s*[-–]\s*(\d+)\s*[Kk]m/i)
+                || text.match(/(\d+)\s*[Kk]m\s+Assist[eê]ncia/i)
+                || text.match(/ASSIST[EÊ]NCIA\s+(\d+)\s*KM/i);
+      const assIlim = /[Kk]m\s+[Ii]limitado\s+Assist[eê]ncia|Assist[eê]ncia[\s\S]{0,80}?[Kk]m\s+[Ii]limitado|ASSIST[EÊ]NCIA\s+KM\s+ILIMITADO|KM\s+ILIMITADO/i.test(text);
+      if (assM || assIlim) {
         check('chkAssistencia', true);
-        const km = assM[1] ? assM[1] : 'Ilimitado';
+        const km = assIlim ? 'Ilimitado' : assM[1];
         fill('assistenciaKm', km);
         fill('lblAssistencia', km === 'Ilimitado' ? 'Assistência 24h — Ilimitada' : 'Assistência 24h — ' + km + 'km');
-      } else if (/ESSENCIAL.*?KM ILIMITADO|KM ILIMITADO/i.test(text)) {
-        check('chkAssistencia', true);
-        fill('assistenciaKm', 'Ilimitado');
-        fill('lblAssistencia', 'Assistência 24h — Ilimitada');
       }
 
       // Vidros
@@ -2771,9 +2769,9 @@
       }
 
       // ── FRANQUIA PRINCIPAL ─────────────────────────────────────
-      // Azul Tradicional: "Compreensiva... 100.00%  R$ [PRÊMIO] R$ [FRANQUIA] (25% da Obrigatória)"
-      //   → prêmio vem primeiro, franquia é o R$ antes de "(25%"
-      const franqAzulM = text.match(/Compreensiva[\s\S]{0,200}?R\$\s*[\d\.,]+\s+R\$\s*([\d\.,]+)\s*\(25%/i);
+      // Azul Tradicional: "Compreensiva... R$ [PRÊMIO] R$ [FRANQUIA] (NN% ..." — prêmio vem primeiro
+      const franqAzulM = text.match(/Compreensiva[\s\S]{0,200}?R\$\s*[\d\.,]+\s+R\$\s*([\d\.,]+)\s*\(\d+%/i)
+                      || text.match(/Compreensiva[\s\S]{0,200}?R\$\s*[\d\.,]+\s+R\$\s*([\d\.,]+)/i);
       // Auto Mulher: "COMPREENSIVA 100.00% R$ [LMI] 0.00% 0.00% R$ [FRANQUIA]"
       const franqVelhoM = text.match(/COMPREENSIVA\s+100[.,]00%\s+R\$\s*[\d\.,]+[\s\d%,.]+R\$\s*([\d\.,]+)/i);
       const franqVal = franqAzulM || franqVelhoM;
