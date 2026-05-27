@@ -2756,7 +2756,7 @@
       }
 
       // ── FRANQUIAS DE SERVIÇOS ──────────────────────────────────
-      const franqSvcBlock = text.match(/Franquias?[:\s]+([\s\S]+?)(?=\n\n|Descri[çc][aã]o|RCF|APP|Servi[çc]os|Cobertura)/i);
+      const franqSvcBlock = text.match(/Franquias:\s+([\s\S]+?)(?=\n\n|Descri[çc][aã]o|RCF|APP|Servi[çc]os|Cobertura)/i);
       if (franqSvcBlock) {
         const itens = [];
         const rxFq = /([^:\/\n\*]+?):\s*R\$\s*([\d\.,]+)/g;
@@ -2778,8 +2778,10 @@
       if (franqVal) fill('franquiaValor', 'R$ ' + franqVal[1]);
 
       // ── VALORES / PAGAMENTOS ───────────────────────────────────
-      // Novo: "Valor total R$ X"  |  Velho: "Prêmio Total: R$ X"
-      const premioM = text.match(/Valor\s+total\s+R\$\s*([\d\.,]+)/i)
+      // Azul Tradicional: "Valor total R$ [líquido] + R$ [IOF]  R$ [TOTAL]" — 3º R$ é o total
+      // Auto Mulher: "Prêmio Total: R$ X"
+      const premioM = text.match(/Valor\s+total\s+R\$\s*[\d\.,]+\s*\+\s*R\$\s*[\d\.,]+\s+R\$\s*([\d\.,]+)/i)
+                   || text.match(/Valor\s+total\s+R\$\s*([\d\.,]+)/i)
                    || text.match(/Pr[eê]mio Total:\s*R\$\s*([\d\.,]+)/i);
       if (premioM) {
         const total = premioM[1];
