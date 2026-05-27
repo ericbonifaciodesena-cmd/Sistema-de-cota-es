@@ -2614,7 +2614,7 @@
       }
 
       // ── IDENTIFICAÇÃO ──────────────────────────────────────────
-      const isAzul = /\bAzul\s+Seguros\b|\bAZUL\s+SEGUROS\b/i.test(text);
+      const isAzul = /\bAzul\s+Seguros\b|\bAZUL\s+SEGUROS\b|\bAzul\s+Tradicional\b/i.test(text);
       fill('seguradora', isAzul ? 'Azul Seguros' : 'Porto Seguro');
 
       // Nº Cotação — novo layout: "Orçamento\n5825995121"  |  velho: "Orçamento: 5709282278-0-1"
