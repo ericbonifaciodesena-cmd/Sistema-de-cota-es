@@ -2929,13 +2929,15 @@
       const anoM = text.match(/Ano\s+modelo\s+(\d{4})/i);
       if (anoM) fill('ano', anoM[1]);
 
-      // Fabricante: para antes de "Modelo" (valores e rótulos separados por 2+ espaços)
-      // Modelo: para antes do próximo rótulo conhecido
-      const fabM = text.match(/Fabricante\s+(.+?)\s{2,}Modelo/i);
-      const modM = text.match(/Modelo\s+(.+?)\s{2,}(?:Isen[çc]|Tipo\s+de|Combust|Zero\s+[Kk]m|Chassi|Ve[ií]culo|Data\s+impress|Placa)/i);
-      if (fabM && modM) fill('modelo', fabM[1].trim() + ' ' + modM[1].trim());
-      else if (modM)    fill('modelo', modM[1].trim());
-      else if (fabM)    fill('modelo', fabM[1].trim());
+      // Ancora no ano para evitar capturar a ocorrência errada de "Fabricante"
+      // Padrão: "2019  Fabricante  Mitsubishi  Modelo  ASX 2.0 16V 4x2 Flex Aut.  Isenção..."
+      const veicM = text.match(/\b\d{4}\s{2,}Fabricante\s{2,}(.+?)\s{2,}Modelo\s{2,}(.+?)\s{2,}(?:Isen[çc]|Tipo\s+de|Combust|Zero\s+[Kk]m|Chassi|Ve[ií]culo|Data\s+impress)/i);
+      if (veicM) {
+        fill('modelo', veicM[1].trim() + ' ' + veicM[2].trim());
+      } else {
+        const modM = text.match(/Modelo\s{2,}(.+?)\s{2,}(?:Isen[çc]|Tipo\s+de|Combust|Zero\s+[Kk]m|Chassi|Ve[ií]culo|Data\s+impress)/i);
+        if (modM) fill('modelo', modM[1].trim());
+      }
 
       // ── COBERTURAS ESSENCIAIS ──────────────────────────────────
       if (/Casco\s*\(Colis[aã]o/i.test(text)) {
@@ -3005,9 +3007,11 @@
         fill('cartaoParcelas', nP);
         fill('cartaoValor',   cVaM ? cVaM[1] : (nParcsM ? nParcsM[2] : fmt(10)));
 
-        // Débito: Suíça não tem débito separado → mesmos valores do boleto
-        fill('debitoParcelas', document.getElementById('boletoParcelas').value);
-        fill('debitoValor',    document.getElementById('boletoValor').value);
+        // Suíça não tem débito em conta — limpa os campos
+        const _dp = document.getElementById('debitoParcelas');
+        const _dv = document.getElementById('debitoValor');
+        if (_dp) _dp.value = '';
+        if (_dv) _dv.value = '';
       }
 
       toggleScreen('form');
