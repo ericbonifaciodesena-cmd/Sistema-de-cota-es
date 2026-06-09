@@ -2929,10 +2929,13 @@
       const anoM = text.match(/Ano\s+modelo\s+(\d{4})/i);
       if (anoM) fill('ano', anoM[1]);
 
-      const fabM   = text.match(/Fabricante\s+([^\n\r]+)/i);
-      const modM   = text.match(/Modelo\s+([^\n\r]+)/i);
+      // Fabricante: para antes de "Modelo" (valores e rótulos separados por 2+ espaços)
+      // Modelo: para antes do próximo rótulo conhecido
+      const fabM = text.match(/Fabricante\s+(.+?)\s{2,}Modelo/i);
+      const modM = text.match(/Modelo\s+(.+?)\s{2,}(?:Isen[çc]|Tipo\s+de|Combust|Zero\s+[Kk]m|Chassi|Ve[ií]culo|Data\s+impress|Placa)/i);
       if (fabM && modM) fill('modelo', fabM[1].trim() + ' ' + modM[1].trim());
       else if (modM)    fill('modelo', modM[1].trim());
+      else if (fabM)    fill('modelo', fabM[1].trim());
 
       // ── COBERTURAS ESSENCIAIS ──────────────────────────────────
       if (/Casco\s*\(Colis[aã]o/i.test(text)) {
@@ -2974,44 +2977,43 @@
       if (franqM) fill('franquiaValor', 'R$ ' + franqM[1]);
 
       // ── VALORES / PAGAMENTOS ───────────────────────────────────
-      const premioM = text.match(/R\$\s*([\d\.]+,\d{2})\s*[àaÀA]\s*vista/i)
-                   || text.match(/[àaÀA]\s*vista\s*R?\$?\s*([\d\.]+,\d{2})/i)
+      // "R$ 3537,13 à vista" — usa [^\s]{1,3} para cobrir 'à', 'a', 'Â', etc.
+      const premioM = text.match(/R\$\s*([\d\.]+,\d{2})\s+[^\s]{1,3}\s*vista/i)
+                   || text.match(/[^\s]{1,3}\s*vista[:\s]+R?\$?\s*([\d\.]+,\d{2})/i)
+                   || text.match(/\b1\b\s+([\d\.]+,\d{2})\s+[^\s]{1,3}\s*vista/i)
                    || text.match(/Total\s+(?:do\s+)?Pr[eê]mio[:\s]+([\d\.]+,\d{2})/i)
-                   || text.match(/Pr[eê]mio\s+(?:Total|L[ií]quido)[:\s]+([\d\.]+,\d{2})/i)
-                   || text.match(/Total\s+([\d\.]+,\d{2})\s*\n/);
+                   || text.match(/Pr[eê]mio\s+(?:Total|Bruto|L[ií]quido)[:\s]+([\d\.]+,\d{2})/i);
       if (premioM) {
         const total = premioM[1];
         const num   = parseFloat(total.replace(/\./g, '').replace(',', '.'));
         fill('premioTotal', 'R$ ' + total);
         fill('aVista',      'R$ ' + total);
 
-        // Boleto/PIX — maior Nx sem juros
+        const fmt = n => (num / n).toFixed(2).replace('.', ',');
+
+        // Boleto/PIX — maior Nx sem juros; fallback 10x
+        let boletoOk = false;
         const boletoBlock = text.match(/Boleto\s*\/?\s*PIX\s+Parcela[\s\S]+?(?=Cart[aã]o\s+de\s+cr[eé]dito|DADOS\s+DO\s+CORRETOR|Data\s+impress[aã]o|$)/i);
         if (boletoBlock) {
           const parcs = [...boletoBlock[0].matchAll(/(\d{1,2})\s+([\d\.,]+)\s+Sem\s+juros/gi)];
           if (parcs.length) {
             const ult = parcs[parcs.length - 1];
-            fill('boletoParcelas', ult[1]);
-            fill('boletoValor',    ult[2]);
+            fill('boletoParcelas', ult[1]); fill('boletoValor', ult[2]); boletoOk = true;
           }
-        } else {
-          const fmt = n => (num / n).toFixed(2).replace('.', ',');
-          fill('boletoParcelas', '10'); fill('boletoValor', fmt(10));
         }
+        if (!boletoOk) { fill('boletoParcelas', '10'); fill('boletoValor', fmt(10)); }
 
-        // Cartão de crédito — maior Nx sem juros
+        // Cartão de crédito — maior Nx sem juros; fallback 10x
+        let cartaoOk = false;
         const cartaoBlock = text.match(/Cart[aã]o\s+de\s+cr[eé]dito\s+Parcela[\s\S]+?(?=DADOS\s+DO\s+CORRETOR|Data\s+impress[aã]o|$)/i);
         if (cartaoBlock) {
           const parcs = [...cartaoBlock[0].matchAll(/(\d{1,2})\s+([\d\.,]+)\s+Sem\s+juros/gi)];
           if (parcs.length) {
             const ult = parcs[parcs.length - 1];
-            fill('cartaoParcelas', ult[1]);
-            fill('cartaoValor',    ult[2]);
+            fill('cartaoParcelas', ult[1]); fill('cartaoValor', ult[2]); cartaoOk = true;
           }
-        } else {
-          const fmt = n => (num / n).toFixed(2).replace('.', ',');
-          fill('cartaoParcelas', '10'); fill('cartaoValor', fmt(10));
         }
+        if (!cartaoOk) { fill('cartaoParcelas', '10'); fill('cartaoValor', fmt(10)); }
 
         // Débito: Suíça não tem débito separado → mesmos valores do boleto
         fill('debitoParcelas', document.getElementById('boletoParcelas').value);
