@@ -2899,6 +2899,18 @@
       const nascM = text.match(/Data\s+de\s+nascimento\s+([\d]{2}\/[\d]{2}\/[\d]{4})/i);
       if (nascM) fill('dataNasc', toISO(nascM[1]));
 
+      const ecM = text.match(/Estado\s+civil\s+(Solteiro|Casado|Divorciado|Vi[úu]vo|Uni[aã]o\s+Est[aá]vel)[^\n]*/i);
+      if (ecM) {
+        const ecNorm = ecM[1].charAt(0).toUpperCase() + ecM[1].slice(1).toLowerCase();
+        const ecVal = ecNorm.startsWith('Solteiro') ? 'Solteiro(a)'
+                    : ecNorm.startsWith('Casado')   ? 'Casado(a)'
+                    : ecNorm;
+        fill('estadoCivil', ecVal);
+      }
+
+      const jovemM = text.match(/Deseja\s+estender\s+cobertura\s+p[\/\.]\s*residentes[\s\S]{0,200}?(N[aã]o|Sim)/i);
+      if (jovemM) fill('jovemCondutor', /sim/i.test(jovemM[1]) ? 'Sim' : 'Não');
+
       const cepM = text.match(/CEP\s+de\s+pernoite\s+([\d]{5})-?([\d]{3})/i);
       if (cepM) fill('cep', cepM[1] + '-' + cepM[2]);
 
@@ -2962,8 +2974,11 @@
       if (franqM) fill('franquiaValor', 'R$ ' + franqM[1]);
 
       // ── VALORES / PAGAMENTOS ───────────────────────────────────
-      const premioM = text.match(/R\$\s*([\d\.]+,\d{2})\s*[àa]\s*vista/i)
-                   || text.match(/[àa]\s*vista\s*R\$\s*([\d\.]+,\d{2})/i);
+      const premioM = text.match(/R\$\s*([\d\.]+,\d{2})\s*[àaÀA]\s*vista/i)
+                   || text.match(/[àaÀA]\s*vista\s*R?\$?\s*([\d\.]+,\d{2})/i)
+                   || text.match(/Total\s+(?:do\s+)?Pr[eê]mio[:\s]+([\d\.]+,\d{2})/i)
+                   || text.match(/Pr[eê]mio\s+(?:Total|L[ií]quido)[:\s]+([\d\.]+,\d{2})/i)
+                   || text.match(/Total\s+([\d\.]+,\d{2})\s*\n/);
       if (premioM) {
         const total = premioM[1];
         const num   = parseFloat(total.replace(/\./g, '').replace(',', '.'));
