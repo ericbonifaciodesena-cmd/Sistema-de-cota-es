@@ -2525,8 +2525,7 @@
         fill('lblPequenosReparos', 'Pequenos Reparos');
       }
       const parachoqueM = text.match(/Troca\s+de\s+Para-?choque[:\s]+([\d\.,]+)/i);
-      if ((parachoqueM && parseFloat(parachoqueM[1].replace(/\./g,'').replace(',','.')) > 0) ||
-          /\(126\)\s*Repare\s+F[aá]cil\s*[-–]\s*Rep\.\s*R[aá]pido/i.test(text)) {
+      if (parachoqueM && parseFloat(parachoqueM[1].replace(/\./g,'').replace(',','.')) > 0) {
         check('chkParachoque', true);
         fill('lblParachoque', 'Troca de Para-choque');
       }
