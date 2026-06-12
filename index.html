@@ -3537,13 +3537,11 @@
       if (!window.showDirectoryPicker) { fallback(); return; }
       let dir = await _dbPropostas('readonly');
       if (dir) {
+        // Só usa a pasta se a permissão já estiver ativa — sem prompt automático
         const perm = await dir.queryPermission({ mode: 'readwrite' });
-        if (perm !== 'granted') {
-          const r = await dir.requestPermission({ mode: 'readwrite' });
-          if (r !== 'granted') dir = null;
-        }
+        if (perm !== 'granted') dir = null;
       }
-      // Sem pasta configurada: download normal (configure via botão "Mudar pasta")
+      // Sem pasta ativa: download normal (clique em "Mudar pasta" para reativar)
       if (!dir) { fallback(); return; }
       try {
         const fh = await dir.getFileHandle(filename, { create: true });
