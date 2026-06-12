@@ -2570,6 +2570,17 @@
           if (val > 0) franqItens.push(nome + ': R$ ' + m[1]);
         }
       }
+
+      // Super Martelinho e Reparo Rápido: valores ANTES dos labels
+      // "90,00  180,00  Super Martelinho: Repare Fácil Reparo Rápido:"
+      if (!franqItens.some(i => i.startsWith('Super Martelinho'))) {
+        const mrM = text.match(/([\d\.]+,\d{2})\s+([\d\.]+,\d{2})\s+Super\s+Martelinho:/i);
+        if (mrM) {
+          if (toVal(mrM[1]) > 0) franqItens.push('Super Martelinho: R$ ' + mrM[1]);
+          if (toVal(mrM[2]) > 0) franqItens.push('Reparo Rápido: R$ ' + mrM[2]);
+        }
+      }
+
       if (franqItens.length) fill('franquias', franqItens.join(' | '));
 
       // ── FRANQUIA PRINCIPAL ────────────────────────────────────────
