@@ -3494,13 +3494,13 @@
     }
 
     async function saveToPropostas(blob, filename) {
-      if (!window.showDirectoryPicker) {
+      const fallback = () => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url; a.download = filename; a.click();
-        URL.revokeObjectURL(url);
-        return;
-      }
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      };
+      if (!window.showDirectoryPicker) { fallback(); return; }
       let dir = await _dbPropostas('readonly');
       if (dir) {
         const perm = await dir.queryPermission({ mode: 'readwrite' });
@@ -3509,22 +3509,13 @@
           if (r !== 'granted') dir = null;
         }
       }
-      if (!dir) {
-        try {
-          dir = await window.showDirectoryPicker({ mode: 'readwrite', startIn: 'documents' });
-          await _dbPropostas('readwrite', dir);
-        } catch (e) { return; }
-      }
+      // Sem pasta configurada: download normal (configure via botão "Mudar pasta")
+      if (!dir) { fallback(); return; }
       try {
         const fh = await dir.getFileHandle(filename, { create: true });
         const w = await fh.createWritable();
         await w.write(blob); await w.close();
-      } catch (e) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = filename; a.click();
-        URL.revokeObjectURL(url);
-      }
+      } catch (e) { fallback(); }
     }
 
     async function mudarPastaPropostas() {
