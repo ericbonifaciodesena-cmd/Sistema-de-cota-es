@@ -1047,6 +1047,12 @@
         <button type="button" id="btnMudarPasta" onclick="mudarPastaPropostas()"
           style="background:none;border:1px solid #cbd5e1;border-radius:8px;padding:8px 14px;font-size:0.82rem;color:#475569;cursor:pointer;white-space:nowrap;"
           title="Escolher pasta onde os PDFs serão salvos">📁 Mudar pasta</button>
+        <label id="lblSemprePasta" title="Ative neste dispositivo para salvar sempre na pasta configurada"
+          style="display:none;align-items:center;gap:6px;font-size:0.82rem;color:#475569;cursor:pointer;user-select:none;">
+          <input type="checkbox" id="chkSemprePasta" onchange="toggleSemprePasta(this.checked)"
+            style="width:15px;height:15px;cursor:pointer;accent-color:#2563eb;">
+          Sempre salvar na pasta
+        </label>
       </div>
 
     </form>
@@ -3537,11 +3543,17 @@
       if (!window.showDirectoryPicker) { fallback(); return; }
       let dir = await _dbPropostas('readonly');
       if (dir) {
-        // Só usa a pasta se a permissão já estiver ativa — sem prompt automático
         const perm = await dir.queryPermission({ mode: 'readwrite' });
-        if (perm !== 'granted') dir = null;
+        if (perm !== 'granted') {
+          if (localStorage.getItem('senaseguros_sempre_pasta') === '1') {
+            // Este dispositivo quer sempre salvar na pasta — pede permissão se necessário
+            const r = await dir.requestPermission({ mode: 'readwrite' });
+            if (r !== 'granted') dir = null;
+          } else {
+            dir = null;
+          }
+        }
       }
-      // Sem pasta ativa: download normal (clique em "Mudar pasta" para reativar)
       if (!dir) { fallback(); return; }
       try {
         const fh = await dir.getFileHandle(filename, { create: true });
@@ -3549,6 +3561,14 @@
         await w.write(blob); await w.close();
         showToast('✓ PDF salvo em ' + dir.name + '/' + filename);
       } catch (e) { fallback(); }
+    }
+
+    function toggleSemprePasta(on) {
+      if (on) {
+        localStorage.setItem('senaseguros_sempre_pasta', '1');
+      } else {
+        localStorage.removeItem('senaseguros_sempre_pasta');
+      }
     }
 
     async function mudarPastaPropostas() {
@@ -3559,15 +3579,23 @@
       try {
         const dir = await window.showDirectoryPicker({ mode: 'readwrite', startIn: 'documents' });
         await _dbPropostas('readwrite', dir);
+        // Ativa automaticamente "sempre salvar na pasta" neste dispositivo
+        localStorage.setItem('senaseguros_sempre_pasta', '1');
+        document.getElementById('chkSemprePasta').checked = true;
         document.getElementById('btnMudarPasta').textContent = '📁 ' + dir.name;
-        setTimeout(() => { document.getElementById('btnMudarPasta').textContent = '📁 Mudar pasta'; }, 3000);
+        setTimeout(() => { document.getElementById('btnMudarPasta').textContent = '📁 ' + dir.name; }, 3000);
       } catch (e) {}
     }
 
-    // Ao carregar, mostra nome da pasta configurada
+    // Ao carregar, mostra nome da pasta configurada e estado do toggle
     window.addEventListener('DOMContentLoaded', async () => {
       const dir = await _dbPropostas('readonly');
+      const semprePasta = localStorage.getItem('senaseguros_sempre_pasta') === '1';
+      if (dir || window.showDirectoryPicker) {
+        document.getElementById('lblSemprePasta').style.display = 'flex';
+      }
       if (dir) document.getElementById('btnMudarPasta').textContent = '📁 ' + dir.name;
+      document.getElementById('chkSemprePasta').checked = semprePasta;
     });
 
     async function generatePDF() {
