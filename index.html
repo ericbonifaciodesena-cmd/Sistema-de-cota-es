@@ -3050,21 +3050,29 @@
       // ── IDENTIFICAÇÃO ──────────────────────────────────────────
       fill('seguradora', 'Mapfre');
 
-      const cotM = text.match(/Cota[çc][aã]o\s+n[ºo°][:\s]*([\d]+)/i);
+      // Cotação: value appears BEFORE label in extracted text
+      const cotM = text.match(/([\d]{6,20})\s+Cota[çc][aã]o\s+n[ºo°]/i)
+                || text.match(/Cota[çc][aã]o\s+n[ºo°][:\s]*([\d]+)/i);
       if (cotM) fill('numeroCotacao', cotM[1]);
 
-      const validM = text.match(/Validade\s+da\s+Cota[çc][aã]o[:\s]*([\d]{2}\/[\d]{2}\/[\d]{4})/i);
+      // Validade: value appears BEFORE label
+      const validM = text.match(/([\d]{2}\/[\d]{2}\/[\d]{4})\s+Validade\s+da\s+Cota[çc][aã]o/i)
+                  || text.match(/Validade\s+da\s+Cota[çc][aã]o[:\s]*([\d]{2}\/[\d]{2}\/[\d]{4})/i);
       if (validM) fill('validadeCotacao', toISO(validM[1]));
 
       const vigM = text.match(/Vig[eê]ncia[:\s]+das\s+24\s+horas\s+do\s+dia\s+([\d\/]+)\s+at[eé]\s+as\s+24\s+horas\s+do\s+dia\s+([\d\/]+)/i);
       if (vigM) { fill('vigenciaInicio', toISO(vigM[1])); fill('vigenciaTermino', toISO(vigM[2])); }
 
       // ── SEGURADO ───────────────────────────────────────────────
-      const segNomeM = text.match(/Segurado[:\s]+([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+CPF\/CNPJ/i);
-      if (segNomeM) fill('nome', segNomeM[1].trim());
-
-      const cpfM = text.match(/CPF\/CNPJ[:\s]+([\d]{3}\.[\d]{3}\.[\d]{3}-[\d]{2})/i);
+      // CPF: value appears BEFORE label ("073.521.766-16 CPF/CNPJ:")
+      const cpfM = text.match(/([\d]{3}\.[\d]{3}\.[\d]{3}-[\d]{2})\s+CPF\/CNPJ/i)
+                || text.match(/CPF\/CNPJ[:\s]+([\d]{3}\.[\d]{3}\.[\d]{3}-[\d]{2})/i);
       if (cpfM) fill('cpf', cpfM[1]);
+
+      // Segurado nome: appears after "Tipo Pessoa:" label
+      const segNomeM = text.match(/Tipo\s+Pessoa:\s+([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)(?=\s{2,}|\s*-\s*Data|\s+Data\s+de|\s+CEP|$)/i)
+                    || text.match(/Segurado[:\s]+([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+CPF\/CNPJ/i);
+      if (segNomeM) fill('nome', segNomeM[1].trim());
 
       const nascSegM = text.match(/Data\s+de\s+Nascimento[:\s]+([\d]{2}\/[\d]{2}\/[\d]{4})/i);
       if (nascSegM) fill('dataNasc', toISO(nascSegM[1]));
@@ -3080,8 +3088,12 @@
 
       // ── CONDUTOR PRINCIPAL ─────────────────────────────────────
       const condNomeM = text.match(/Nome\s+do\s+Principal\s+Condutor[:\s]+([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)(?:\s*\n|\s*-\s*Data|\s{2,})/i);
-      if (condNomeM) fill('condutorNome', condNomeM[1].trim());
-      else if (segNomeM) fill('condutorNome', segNomeM[1].trim());
+      if (condNomeM) {
+        fill('condutorNome', condNomeM[1].trim());
+        if (!segNomeM) fill('nome', condNomeM[1].trim());
+      } else if (segNomeM) {
+        fill('condutorNome', segNomeM[1].trim());
+      }
 
       const nascCondM = text.match(/Data\s+de\s+Nascimento\s+Condutor[:\s]+([\d]{2}\/[\d]{2}\/[\d]{4})/i);
       if (nascCondM) fill('condutorDataNasc', toISO(nascCondM[1]));
@@ -3100,11 +3112,13 @@
       }
 
       // ── VEÍCULO ────────────────────────────────────────────────
-      // "Veículo: 153;1;9; IP970512 GWM - HAVAL H6 35 PHEV 1.5 AT Gas/Ele 4p"
-      const veicM = text.match(/Ve[ií]culo:[^\n]*?[\d;]+\s+[A-Z0-9]+\s+((?:GWM|TOYOTA|HONDA|VOLKSWAGEN|VW|CHEVROLET|FIAT|FORD|NISSAN|RENAULT|JEEP|HYUNDAI|KIA|PEUGEOT|MITSUBISHI|MERCEDES|BMW|HAVAL|AUDI|VOLVO|LAND\s+ROVER|CAOA|CHERY|BYD|JAC|SUZUKI|SUBARU)\b[^\n]+?)(?=\n|Ano\s+Modelo)/i);
+      // "Chassi:  153;1;9; IP970512 GWM - HAVAL H6 35 PHEV 1.5 AT Gas/Ele 4p 11/06/2026"
+      const veicM = text.match(/Chassi:\s+(?:[\d;]+\s+[A-Z0-9]{4,}\s+)?([A-ZÁÉÍÓÚÀÂÊÔ][^\n]+?)(?=\s+\d{2}\/\d{2}\/\d{4}|\s{3,})/i);
       if (veicM) fill('modelo', veicM[1].trim());
 
-      const anoM = text.match(/Ano\s+Modelo[:\s]*(\d{4})/i);
+      // Ano Modelo: value appears BEFORE label ("2026 Ano Modelo:")
+      const anoM = text.match(/(\d{4})\s+Ano\s+Modelo/i)
+                || text.match(/Ano\s+Modelo[:\s]*(\d{4})/i);
       if (anoM) fill('ano', anoM[1]);
 
       const placaM = text.match(/\b([A-Z]{3}\d[A-Z0-9]\d{2})\b/);
@@ -3188,41 +3202,58 @@
       if (franqItens.length) fill('franquias', franqItens.join(' | '));
 
       // ── FRANQUIA PRINCIPAL ─────────────────────────────────────
-      const franqM = text.match(/Casco[:\s]*Reduzida[^R]+R\$\s*([\d\.,]+)/i);
+      // "Casco: Reduzida 50%   15.608,18 SRA..." — value after label, no R$ prefix
+      const franqM = text.match(/Casco:\s+Reduzida[^\d\n]*([\d\.]+,\d{2})/i);
       if (franqM) fill('franquiaValor', 'R$ ' + franqM[1]);
 
       // SRA → Pequenos Reparos (independente dos vidros)
       if (/SRA\s*[-–]\s*Reparo\s+em\s+arranhões/i.test(text)) check('chkPequenosReparos', true);
 
       // ── VALORES / PAGAMENTOS ───────────────────────────────────
-      const premioM = text.match(/Pr[eê]mio\s+Total\s+([\d\.,]+)/i);
-      if (premioM) {
-        const total = premioM[1];
-        const num   = parseFloat(total.replace(/\./g, '').replace(',', '.'));
-        fill('premioTotal', 'R$ ' + total);
-        fill('aVista',      'R$ ' + total);
-        const fmt = n => (num / n).toFixed(2).replace('.', ',');
+      // "Prêmios Prêmio Líquido   Encargos   IOF  4.882,23   0,00   360,30"
+      // Labels then values; Total = Líquido + IOF
+      let totalNum = 0, totalStr = '';
+      const premioRawM = text.match(/Pr[eê]mios\s+Pr[eê]mio\s+L[ií]quido\s+Encargos\s+IOF\s+([\d\.]+,\d{2})\s+([\d\.]+,\d{2})\s+([\d\.]+,\d{2})/i);
+      if (premioRawM) {
+        const liq = parseFloat(premioRawM[1].replace(/\./g, '').replace(',', '.'));
+        const iof = parseFloat(premioRawM[3].replace(/\./g, '').replace(',', '.'));
+        totalNum = liq + iof;
+        const raw = totalNum.toFixed(2);
+        const [intPart, decPart] = raw.split('.');
+        totalStr = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + decPart;
+      } else {
+        const pm = text.match(/Pr[eê]mio\s+Total\s+([\d\.,]+)/i);
+        if (pm) { totalStr = pm[1]; totalNum = parseFloat(pm[1].replace(/\./g, '').replace(',', '.')); }
+      }
+
+      if (totalStr) {
+        fill('premioTotal', 'R$ ' + totalStr);
+        fill('aVista',      'R$ ' + totalStr);
+        const fmt = n => (totalNum / n).toFixed(2).replace('.', ',');
+
+        // Payment rows format: "Nx  valor_parcela  total" (no "Sem Juros R$")
+        const getPayRows = blk => [...blk.matchAll(/(\d{1,2})x\s+([\d\.]+,\d{2})\s+([\d\.]+,\d{2})/gi)];
 
         // Boleto
-        const boletoBlock = text.match(/Boleto\s+Parcelas[\s\S]+?(?=D[eé]bito\s+em\s+Conta|Cart[aã]o\s+de\s+Cr[eé]dito|$)/i);
+        const boletoBlock = text.match(/Boleto[\s\S]+?(?=D[eé]bito\s+em\s+Conta|Cart[aã]o\s+de\s+Cr[eé]dito|$)/i);
         if (boletoBlock) {
-          const ps = [...boletoBlock[0].matchAll(/(\d{1,2})x\s+Sem\s+Juros\s+R\$\s*([\d\.,]+)/gi)];
+          const ps = getPayRows(boletoBlock[0]);
           if (ps.length) { fill('boletoParcelas', ps[ps.length-1][1]); fill('boletoValor', ps[ps.length-1][2]); }
           else { fill('boletoParcelas', '2'); fill('boletoValor', fmt(2)); }
         } else { fill('boletoParcelas', '2'); fill('boletoValor', fmt(2)); }
 
         // Débito
-        const debitoBlock = text.match(/D[eé]bito\s+em\s+Conta\s+Parcelas[\s\S]+?(?=D[eé]bito\s+c\/|Cart[aã]o\s+de\s+Cr[eé]dito|$)/i);
+        const debitoBlock = text.match(/D[eé]bito\s+em\s+Conta[\s\S]+?(?=Cart[aã]o\s+de\s+Cr[eé]dito|$)/i);
         if (debitoBlock) {
-          const ps = [...debitoBlock[0].matchAll(/(\d{1,2})x\s+Sem\s+Juros\s+R\$\s*([\d\.,]+)/gi)];
+          const ps = getPayRows(debitoBlock[0]);
           if (ps.length) { fill('debitoParcelas', ps[ps.length-1][1]); fill('debitoValor', ps[ps.length-1][2]); }
           else { fill('debitoParcelas', '6'); fill('debitoValor', fmt(6)); }
         } else { fill('debitoParcelas', '6'); fill('debitoValor', fmt(6)); }
 
         // Cartão
-        const cartaoBlock = text.match(/Cart[aã]o\s+de\s+Cr[eé]dito\s+Parcelas[\s\S]+?(?=\n\n|$)/i);
+        const cartaoBlock = text.match(/Cart[aã]o\s+de\s+Cr[eé]dito[\s\S]+?(?=$)/i);
         if (cartaoBlock) {
-          const ps = [...cartaoBlock[0].matchAll(/(\d{1,2})x\s+Sem\s+Juros\s+R\$\s*([\d\.,]+)/gi)];
+          const ps = getPayRows(cartaoBlock[0]);
           if (ps.length) { fill('cartaoParcelas', ps[ps.length-1][1]); fill('cartaoValor', ps[ps.length-1][2]); }
           else { fill('cartaoParcelas', '12'); fill('cartaoValor', fmt(12)); }
         } else { fill('cartaoParcelas', '12'); fill('cartaoValor', fmt(12)); }
