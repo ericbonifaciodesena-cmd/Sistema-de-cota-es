@@ -3459,11 +3459,13 @@
                    || text.match(/Pr[eê]mio\s+Total\s*\(R\$\)[\s\S]{0,200}?([\d\.]+,\d{2})\s+\d+\s+[\d\.,]+/i);
       if (premioM) {
         const val = premioM[1];
+        const num = parseFloat(val.replace(/\./g,'').replace(',','.'));
+        const fmt = n => (num / n).toFixed(2).replace('.', ',');
         fill('premioTotal', 'R$ ' + val);
         fill('aVista',      'R$ ' + val);
-        fill('boletoParcelas', '1'); fill('boletoValor',  val);
-        fill('debitoParcelas', '1'); fill('debitoValor',  val);
-        fill('cartaoParcelas', '1'); fill('cartaoValor',  val);
+        fill('boletoParcelas', '1');  fill('boletoValor',  val);
+        fill('debitoParcelas', '10'); fill('debitoValor',  fmt(10));
+        fill('cartaoParcelas', '12'); fill('cartaoValor',  fmt(12));
       }
 
       toggleScreen('form');
