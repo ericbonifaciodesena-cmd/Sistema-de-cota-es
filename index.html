@@ -378,6 +378,30 @@
       white-space: nowrap;
     }
 
+    /* ── Toast de confirmação ── */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #16a34a;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s, transform 0.25s;
+      z-index: 9999;
+      white-space: nowrap;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
     /* ── Botão ── */
     .btn-gerar {
       width: 100%;
@@ -3293,6 +3317,15 @@
       document.getElementById('uploadError').style.display = 'none';
     }
 
+    function showToast(msg, color = '#16a34a') {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.style.background = color;
+      el.classList.add('show');
+      clearTimeout(el._t);
+      el._t = setTimeout(() => el.classList.remove('show'), 3000);
+    }
+
     function showError(msg) {
       const el = document.getElementById('uploadError');
       el.textContent = msg;
@@ -3499,6 +3532,7 @@
         const a = document.createElement('a');
         a.href = url; a.download = filename; a.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast('✓ PDF baixado: ' + filename);
       };
       if (!window.showDirectoryPicker) { fallback(); return; }
       let dir = await _dbPropostas('readonly');
@@ -3515,6 +3549,7 @@
         const fh = await dir.getFileHandle(filename, { create: true });
         const w = await fh.createWritable();
         await w.write(blob); await w.close();
+        showToast('✓ PDF salvo em ' + dir.name + '/' + filename);
       } catch (e) { fallback(); }
     }
 
@@ -3933,5 +3968,6 @@
     });
   </script>
 
+<div id="toast"></div>
 </body>
 </html>
