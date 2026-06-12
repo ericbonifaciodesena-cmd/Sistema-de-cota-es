@@ -3080,7 +3080,7 @@
       const cepM = text.match(/UF:\s+(\d{5}-\d{3})/i);
       if (cepM) fill('cep', cepM[1]);
 
-      const usoM = text.match(/Uso[:\s]+[\d]+\s*-\s*([^\n\r]+)/i);
+      const usoM = text.match(/Modalidade:\s+[\d]+\s*-\s*([^\n\r]+)/i);
       if (usoM && /particular/i.test(usoM[1])) fill('uso', 'Particular');
 
       const jovemM = text.match(/condutores\s+residentes\s+entre\s+18\s+e\s+25\s+anos\?\s*[A-Z]\s*-\s*(N[ÃA]O|SIM)/i);
