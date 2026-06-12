@@ -3099,7 +3099,9 @@
       if (nascCondM) fill('condutorDataNasc', toISO(nascCondM[1]));
       else if (nascSegM) fill('condutorDataNasc', toISO(nascSegM[1]));
 
-      // Estado civil não consta no PDF Mapfre
+      // Estado civil: "Estado Civil do Condutor:   C - CASADO"
+      const ecCondM = text.match(/Estado\s+Civil\s+do\s+Condutor[:\s]+[A-Z]\s*-\s*([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ]+)/i);
+      if (ecCondM) fill('condutorEstadoCivil', normEC(ecCondM[1]));
 
       // CPF do condutor: se mesmo segurado copia, senão tenta extrair após nome do condutor
       if (condNomeM && segNomeM && condNomeM[1].trim() === segNomeM[1].trim()) {
