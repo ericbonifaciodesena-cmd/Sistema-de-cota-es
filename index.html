@@ -2105,6 +2105,11 @@
     // ── Dispatcher ────────────────────────────────────────────────
     function parsePDF(text) {
       window._debugText = text;
+      // Releitura de PDF gerado pelo próprio sistema — detectar antes dos demais
+      if (text.includes('SENA SEGUROS - Corretora de Seguros') && text.includes('DADOS DO SEGURADO')) {
+        parseSenaProposta(text);
+        return;
+      }
       if (text.includes('Tokio Marine') || text.includes('TOKIO MARINE')) {
         parseTokioMarine(text);
       } else if (/yelum/i.test(text)) {
@@ -3506,6 +3511,207 @@
         fill('boletoParcelas', '1');  fill('boletoValor',  val);
         fill('debitoParcelas', '10'); fill('debitoValor',  fmt(10));
         fill('cartaoParcelas', '12'); fill('cartaoValor',  fmt(12));
+      }
+
+      toggleScreen('form');
+    }
+
+    // ── Parser Proposta Sena (releitura do PDF gerado) ───────────
+    function parseSenaProposta(text) {
+      window._debugText = text;
+
+      function fill(id, value) {
+        if (value === null || value === undefined || value === '') return;
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.value = value;
+      }
+      function check(id, state) {
+        const el = document.getElementById(id);
+        if (el) el.checked = !!state;
+      }
+      function toISO(dmy) {
+        const m = (dmy || '').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+        return m ? `${m[3]}-${m[2]}-${m[1]}` : '';
+      }
+
+      // Section markers in the order they appear in the generated PDF
+      const MARKERS = [
+        'VIGÊNCIA','SEGURADORA','DADOS DO SEGURADO','CONDUTOR PRINCIPAL',
+        'DADOS DO VEÍCULO','COBERTURAS ESSENCIAIS','COBERTURAS ADICIONAIS',
+        'FRANQUIAS ADICIONAIS','VALORES DA PROPOSTA','FORMAS DE PAGAMENTO',
+        'DIFERENCIAIS SENA'
+      ];
+
+      function getSec(name) {
+        const idx = text.indexOf(name);
+        if (idx < 0) return '';
+        let end = text.length;
+        for (const m of MARKERS) {
+          if (m === name) continue;
+          const ei = text.indexOf(m, idx + name.length);
+          if (ei > idx && ei < end) end = ei;
+        }
+        return text.slice(idx + name.length, end).trim();
+      }
+
+      // Ordered longest-first to avoid 'Nome' matching inside 'Nome Completo'
+      const LABELS = [
+        'Nome Completo','Data de Nascimento','CEP de Pernoite','Jovem Condutor',
+        'Uso do Veículo','Estado Civil','Nome','CPF',
+        'Início','Término','Seguradora','Modelo','Placa','Ano'
+      ];
+      function fieldAfter(sec, label) {
+        const esc = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const stops = LABELS.filter(l => l !== label)
+          .map(l => l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+        const rx = new RegExp(esc + '\\s+([\\s\\S]+?)(?=\\s+(?:' + stops + ')|\\s*$)', 'i');
+        const m = sec.match(rx);
+        if (!m) return '';
+        const v = m[1].trim();
+        return v === '—' ? '' : v;
+      }
+
+      // ── Header ────────────────────────────────────────────────
+      const numM = text.match(/Cota[çc][aã]o:\s*(\S+)/i);
+      if (numM && numM[1] !== 'de') fill('numeroCotacao', numM[1]);
+      const vldM = text.match(/Validade:\s*(\d{2}\/\d{2}\/\d{4})/);
+      if (vldM) fill('validadeCotacao', toISO(vldM[1]));
+
+      // ── VIGÊNCIA ──────────────────────────────────────────────
+      const vigSec = getSec('VIGÊNCIA');
+      const ini = fieldAfter(vigSec, 'Início');
+      const fim = fieldAfter(vigSec, 'Término');
+      if (ini) fill('vigenciaInicio', toISO(ini));
+      if (fim) fill('vigenciaTermino', toISO(fim));
+
+      // ── SEGURADORA ────────────────────────────────────────────
+      fill('seguradora', fieldAfter(getSec('SEGURADORA'), 'Seguradora'));
+
+      // ── DADOS DO SEGURADO ─────────────────────────────────────
+      const dadosSec = getSec('DADOS DO SEGURADO');
+      fill('nome', fieldAfter(dadosSec, 'Nome'));
+      fill('cpf',  fieldAfter(dadosSec, 'CPF'));
+      const nascSeg = fieldAfter(dadosSec, 'Data de Nascimento');
+      if (nascSeg) fill('dataNasc', toISO(nascSeg));
+      fill('estadoCivil', fieldAfter(dadosSec, 'Estado Civil'));
+
+      // ── CONDUTOR PRINCIPAL ────────────────────────────────────
+      const condSec = getSec('CONDUTOR PRINCIPAL');
+      if (condSec) {
+        fill('condutorNome',        fieldAfter(condSec, 'Nome Completo'));
+        fill('condutorCpf',         fieldAfter(condSec, 'CPF'));
+        const nascCond = fieldAfter(condSec, 'Data de Nascimento');
+        if (nascCond) fill('condutorDataNasc', toISO(nascCond));
+        fill('condutorEstadoCivil', fieldAfter(condSec, 'Estado Civil'));
+        fill('cep',                 fieldAfter(condSec, 'CEP de Pernoite'));
+        fill('jovemCondutor',       fieldAfter(condSec, 'Jovem Condutor'));
+        fill('uso',                 fieldAfter(condSec, 'Uso do Veículo'));
+      }
+
+      // ── DADOS DO VEÍCULO ──────────────────────────────────────
+      const veicSec = getSec('DADOS DO VEÍCULO');
+      if (veicSec) {
+        fill('modelo', fieldAfter(veicSec, 'Modelo'));
+        const pv = fieldAfter(veicSec, 'Placa');
+        if (pv && pv !== '—') fill('placa', pv);
+        const av = fieldAfter(veicSec, 'Ano');
+        if (av && av !== '—') fill('ano', av);
+      }
+
+      // ── COBERTURAS helper ─────────────────────────────────────
+      function parseCob(sec, map, hasVal) {
+        for (const c of map) {
+          if (!c.rx.test(sec)) continue;
+          check(c.chk, true);
+          const mStart = sec.search(c.rx);
+          let entryEnd = sec.length;
+          for (const o of map) {
+            if (o === c) continue;
+            const oi = sec.search(o.rx);
+            if (oi > mStart && oi < entryEnd) entryEnd = oi;
+          }
+          const entry = sec.slice(mStart, entryEnd).trim();
+          if (hasVal && c.val) {
+            const vm = entry.match(/(R\$\s*[\d\.]+,\d{2}|[\d\.]+,\d{2}|[\d]+%[^\n]*)$/i);
+            if (vm) {
+              fill(c.val, vm[0].trim());
+              fill(c.lbl, entry.slice(0, entry.length - vm[0].length).trim());
+            } else {
+              fill(c.lbl, entry);
+            }
+          } else {
+            fill(c.lbl, entry);
+            if (c.chk === 'chkAssistencia') {
+              const km = entry.match(/(\d+)\s*km/i);
+              if (km) fill('assistenciaKm', km[1]);
+            }
+          }
+        }
+      }
+
+      const cobEssSec = getSec('COBERTURAS ESSENCIAIS');
+      if (cobEssSec) {
+        parseCob(cobEssSec, [
+          { chk: 'chkColisao',        lbl: 'lblColisao',        val: 'valColisao',        rx: /Colis[aã]o/i },
+          { chk: 'chkDanosMat',       lbl: 'lblDanosMat',       val: 'valDanosMat',       rx: /Danos\s+Materiais/i },
+          { chk: 'chkDanosCorp',      lbl: 'lblDanosCorp',      val: 'valDanosCorp',      rx: /Danos\s+Corporais/i },
+          { chk: 'chkDanosMorais',    lbl: 'lblDanosMorais',    val: 'valDanosMorais',    rx: /Danos\s+Morais/i },
+          { chk: 'chkApp',            lbl: 'lblApp',            val: 'valApp',            rx: /\bAPP\b|Acidente\s+pessoal/i },
+          { chk: 'chkDefesa',         lbl: 'lblDefesa',         val: 'valDefesa',         rx: /Defesa/i },
+          { chk: 'chkDespMed',        lbl: 'lblDespMed',        val: 'valDespMed',        rx: /Desp\.?\s*M[eé]d/i },
+          { chk: 'chkCartaVerdeMat',  lbl: 'lblCartaVerdeMat',  val: 'valCartaVerdeMat',  rx: /Carta\s+Verde.*[Mm]at/i },
+          { chk: 'chkCartaVerdeCorp', lbl: 'lblCartaVerdeCorp', val: 'valCartaVerdeCorp', rx: /Carta\s+Verde.*[Cc]orp/i },
+        ], true);
+      }
+
+      const cobAdcSec = getSec('COBERTURAS ADICIONAIS');
+      if (cobAdcSec) {
+        parseCob(cobAdcSec, [
+          { chk: 'chkCarroReservaIntegral',  lbl: 'lblCarroReservaIntegral',  rx: /Carro\s+Reserva.*Integr/i },
+          { chk: 'chkCarroReservaTerceiros', lbl: 'lblCarroReservaTerceiros', rx: /Carro\s+Reserva.*Terc/i },
+          { chk: 'chkCarroReserva',          lbl: 'lblCarroReserva',          rx: /Carro\s+Reserva(?!.*(?:Integr|Terc))/i },
+          { chk: 'chkAssistencia',           lbl: 'lblAssistencia',           rx: /Assist[eê]ncia/i },
+          { chk: 'chkVidros',                lbl: 'lblVidros',                rx: /Vidros/i },
+          { chk: 'chkPequenosReparos',       lbl: 'lblPequenosReparos',       rx: /Pequenos\s+Reparos/i },
+          { chk: 'chkParachoque',            lbl: 'lblParachoque',            rx: /Para.?choque/i },
+          { chk: 'chkRodas',                 lbl: 'lblRodas',                 rx: /Rodas/i },
+        ], false);
+      }
+
+      // ── FRANQUIAS ADICIONAIS ──────────────────────────────────
+      const franqSec = getSec('FRANQUIAS ADICIONAIS');
+      if (franqSec) {
+        const items = [];
+        const frx = /•\s*([^•\n]+)/g;
+        let fm;
+        while ((fm = frx.exec(franqSec)) !== null) {
+          const it = fm[1].trim();
+          if (it) items.push(it);
+        }
+        if (items.length) fill('franquias', items.join(' | '));
+      }
+
+      // ── VALORES DA PROPOSTA ───────────────────────────────────
+      const valoresSec = getSec('VALORES DA PROPOSTA');
+      if (valoresSec) {
+        const pm = valoresSec.match(/PR[EÊ]MIO\s+TOTAL\s+([\s\S]*?)(?=\s*FRANQUIA|$)/i);
+        if (pm) { const pv = pm[1].trim(); if (pv && pv !== '—') fill('premioTotal', pv); }
+        const fm2 = valoresSec.match(/FRANQUIA\s+(R\$\s*[\d\.]+,\d{2})/i);
+        if (fm2) fill('franquiaValor', fm2[1].trim());
+      }
+
+      // ── FORMAS DE PAGAMENTO ───────────────────────────────────
+      const pagSec = getSec('FORMAS DE PAGAMENTO');
+      if (pagSec) {
+        const av = pagSec.match(/Vista:\s*(R\$\s*[\d\.]+,\d{2})/i);
+        if (av) fill('aVista', av[1].trim());
+        const cc = pagSec.match(/Cr[eé]dito:\s*(\d+)x\s+de\s+R\$\s*([\d\.]+,\d{2})/i);
+        if (cc) { fill('cartaoParcelas', cc[1]); fill('cartaoValor', cc[2]); }
+        const db = pagSec.match(/D[eé]bito[^:]*:\s*(\d+)x\s+de\s+R\$\s*([\d\.]+,\d{2})/i);
+        if (db) { fill('debitoParcelas', db[1]); fill('debitoValor', db[2]); }
+        const bl = pagSec.match(/Boleto:\s*(\d+)x\s+de\s+R\$\s*([\d\.]+,\d{2})/i);
+        if (bl) { fill('boletoParcelas', bl[1]); fill('boletoValor', bl[2]); }
       }
 
       toggleScreen('form');
