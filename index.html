@@ -2514,12 +2514,13 @@
         check('chkVidros', true);
         fill('lblVidros', 'Vidros, faróis, lanternas e retrovisores');
       }
-      const crM = text.match(/Auto\s+Reserva\s*[-–]\s*(\d+)\s*dias/i);
+      const crM = text.match(/Auto\s+Reserva\s*[-–]?\s*(\d+)\s*[Dd]ias/i);
       if (crM) {
         check('chkCarroReserva', true);
+        fill('carroReservaDias', crM[1]);
         fill('lblCarroReserva', 'Carro Reserva — ' + crM[1] + ' dias');
       }
-      if (/\(125\)\s*Repare\s+F[aá]cil\s*[-–]\s*Sup\.\s*Martelinho/i.test(text)) {
+      if (/Super\s+Martelinho|Repare\s+F[aá]cil|\(125\)\s*Repare/i.test(text)) {
         check('chkPequenosReparos', true);
         fill('lblPequenosReparos', 'Pequenos Reparos');
       }
