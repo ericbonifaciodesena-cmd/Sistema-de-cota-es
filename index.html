@@ -3867,7 +3867,7 @@
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(255, 255, 255);
         doc.text(titulo.toUpperCase(), 19, y + 5.5);
-        y += 11;
+        y += 9;
       }
 
       function caixaCampo(label, valor, x, cy, w, h = 11) {
@@ -3902,33 +3902,37 @@
       }
 
       // \u2500\u2500 CABE\u00c7ALHO \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+      // Fundo (mesma cor das barras das se\u00e7\u00f5es: 5, 22, 37), 45mm
       doc.setFillColor(5, 22, 37);
-      doc.rect(0, 0, 210, 38, 'F');
+      doc.rect(0, 0, 210, 45, 'F');
 
-      doc.addImage(logoBrancaResized, 'PNG', 8, 5, 42, 12);
+      // Logo 55mm de largura (ratio 1400x400 -> 55x15.7mm), x=10, y=8
+      doc.addImage(logoBrancaResized, 'PNG', 10, 8, 55, 15.7);
 
-      doc.setTextColor(150, 180, 210);
-      doc.setFontSize(8); doc.setFont('helvetica', 'normal');
-      doc.text('Proposta de Cota\u00e7\u00e3o de Seguro Auto', 8, 22);
-
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(15); doc.setFont('helvetica', 'bold');
-      const primeiroNome = (document.getElementById('nome')?.value || '').trim().split(/\s+/)[0];
-      doc.text('Olá, ' + primeiroNome, 8, 32, { maxWidth: 120 });
-
-      doc.setTextColor(180, 200, 220);
-      doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+      // Canto direito \u2014 Data, N\u00ba Cota\u00e7\u00e3o, Validade
+      doc.setTextColor(220, 235, 255);
+      doc.setFontSize(9); doc.setFont('helvetica', 'normal');
       const dataHoje = new Date().toLocaleDateString('pt-BR');
-      doc.text('Data: ' + dataHoje, 196, 10, { align: 'right' });
-      if (g('numeroCotacao')) doc.text('N\u00ba Cota\u00e7\u00e3o: ' + g('numeroCotacao'), 196, 16, { align: 'right' });
+      let ry = 12;
+      doc.text('Data: ' + dataHoje, 135, ry);
+      if (g('numeroCotacao')) { ry += 8; doc.text('N\u00ba Cota\u00e7\u00e3o: ' + g('numeroCotacao'), 135, ry); }
       const validade = g('validadeCotacao') ? g('validadeCotacao').split('-').reverse().join('/') : '';
-      if (validade) doc.text('Validade: ' + validade, 196, 22, { align: 'right' });
+      if (validade) { ry += 8; doc.text('Validade: ' + validade, 135, ry); }
 
-      doc.setDrawColor(209, 213, 219);
-      doc.setLineWidth(0.5);
-      doc.line(0, 38, 210, 38);
+      // 'Ol\u00e1, NOME DO SEGURADO' centralizado
+      const nomeCliente = (document.getElementById('nome')?.value || '').trim();
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(20); doc.setFont('helvetica', 'bold');
+      doc.text('Olá, ' + nomeCliente, 105, 36, { align: 'center', maxWidth: 170 });
 
-      y = 41;
+      // Subt\u00edtulo centralizado
+      doc.setTextColor(180, 210, 240);
+      doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+      doc.text('Proposta de Cota\u00e7\u00e3o de Seguro Auto', 105, 44, { align: 'center' });
+
+      // Reset cores
+      doc.setTextColor(30, 30, 30);
+      y = 58;
 
       // \u2500\u2500 SEGURADORA \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       secao('VIG\u00caNCIA');
