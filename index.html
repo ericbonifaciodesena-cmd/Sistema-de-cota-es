@@ -3920,10 +3920,9 @@
       if (validade) { ry += 8; doc.text('Validade: ' + validade, 135, ry); }
 
       // 'Ol\u00e1, NOME DO SEGURADO' centralizado
-      const nomeCliente = (document.getElementById('nome')?.value || '').trim();
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(20); doc.setFont('helvetica', 'bold');
-      doc.text('Olá, ' + nomeCliente, 105, 36, { align: 'center', maxWidth: 170 });
+      doc.text('Olá, ' + (document.getElementById('nome')?.value || '').trim(), 105, 36, { align: 'center', maxWidth: 170 });
 
       // Subt\u00edtulo centralizado
       doc.setTextColor(180, 210, 240);
