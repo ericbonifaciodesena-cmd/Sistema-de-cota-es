@@ -4022,7 +4022,7 @@
         { chk: 'chkParachoque',              lbl: 'lblParachoque',              val: null },
         { chk: 'chkRodas',                   lbl: 'lblRodas',                   val: null },
       ].filter(c => chk(c.chk));
-      if (cobAdc.length) { doc.addPage(); y = 16; secao('COBERTURAS ADICIONAIS'); drawCobTable(cobAdc); }
+      if (cobAdc.length) { checkYSpace(40); secao('COBERTURAS ADICIONAIS'); drawCobTable(cobAdc); }
 
       // \u2500\u2500 FRANQUIAS ADICIONAIS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       const franqItens = (g('franquias') || '').split('|').map(s => s.trim()).filter(Boolean);
