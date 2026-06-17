@@ -3903,18 +3903,18 @@
 
       // \u2500\u2500 CABE\u00c7ALHO \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       doc.setFillColor(5, 22, 37);
-      doc.rect(0, 0, 210, 68, 'F');
+      doc.rect(0, 0, 210, 56, 'F');
 
       doc.addImage(logoBrancaResized, 'PNG', 8, 5, 52, 14.9);
 
       doc.setTextColor(150, 180, 210);
-      doc.setFontSize(10); doc.setFont('helvetica', 'normal');
-      doc.text('Cota\u00e7\u00e3o de Seguro Auto', 8, 38);
+      doc.setFontSize(13); doc.setFont('helvetica', 'normal');
+      doc.text('Cota\u00e7\u00e3o de Seguro Auto', 8, 33);
 
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(19); doc.setFont('helvetica', 'bold');
       const primeiroNome = (document.getElementById('nome')?.value || '').trim().split(/\s+/)[0];
-      doc.text('Ol\u00e1, ' + primeiroNome, 8, 57, { maxWidth: 120 });
+      doc.text('Ol\u00e1, ' + primeiroNome, 8, 47, { maxWidth: 120 });
 
       doc.setTextColor(180, 200, 220);
       doc.setFontSize(8); doc.setFont('helvetica', 'normal');
@@ -3926,9 +3926,9 @@
 
       doc.setDrawColor(209, 213, 219);
       doc.setLineWidth(0.5);
-      doc.line(0, 68, 210, 68);
+      doc.line(0, 56, 210, 56);
 
-      y = 71;
+      y = 59;
 
       // \u2500\u2500 SEGURADORA \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       secao('VIG\u00caNCIA');
