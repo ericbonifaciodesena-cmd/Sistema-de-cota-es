@@ -1959,30 +1959,25 @@
       }
 
       // ── ASSISTÊNCIA 24H ──────────────────────────────────────────
-      // Detecta nome descritivo (Básica/Intermediária/Completa) OU Plano X na mesma linha
-      const assistM = text.match(/Assist[eê]ncia\s+24\s*h[s]?[^\n]{0,100}?(B[aá]sic[ao]|Intermediári[ao]|Intermediari[ao]|Complet[ao]|Superior|Plano\s+\d)/i);
-      if (assistM) {
-        check('chkAssistencia', true);
-        const token = assistM[1].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      // Prioridade: nome descritivo na mesma frase; fallback: "Plano X" direto
+      (function() {
+        const base  = /Assist[eê]ncia\s+24\s*h[s]?.{0,60}B[aá]sic/i.test(text);
+        const inter = /Assist[eê]ncia\s+24\s*h[s]?.{0,60}Intermedi/i.test(text);
+        const comp  = /Assist[eê]ncia\s+24\s*h[s]?.{0,60}(Complet|Superior)/i.test(text);
+        const planoM = text.match(/Assist[eê]ncia\s+24\s*h[s]?\s+Plano\s+(\d)/i);
         let km, lbl;
-        if (/^b.?sic/.test(token)) {
+        if (base) {
           km = '200'; lbl = 'Assistência 24h — Básica (200km)';
-        } else if (/^intermedi/.test(token)) {
+        } else if (inter) {
           km = '500'; lbl = 'Assistência 24h — Intermediária (500km)';
-        } else if (/^complet|^superior/.test(token)) {
+        } else if (comp) {
           km = 'Ilimitado'; lbl = 'Assistência 24h — Completa (Ilimitado)';
-        } else {
-          const num = (token.match(/\d/) || ['2'])[0];
-          const mapaAssist = {
-            '1': ['200',       'Assistência 24h — Básica (200km)'],
-            '2': ['500',       'Assistência 24h — Intermediária (500km)'],
-            '3': ['Ilimitado', 'Assistência 24h — Completa (Ilimitado)'],
-          };
-          [km, lbl] = mapaAssist[num] || mapaAssist['2'];
+        } else if (planoM) {
+          const mapa = { '1': ['200','Assistência 24h — Básica (200km)'], '2': ['500','Assistência 24h — Intermediária (500km)'], '3': ['Ilimitado','Assistência 24h — Completa (Ilimitado)'] };
+          [km, lbl] = mapa[planoM[1]] || mapa['2'];
         }
-        fill('assistenciaKm', km);
-        fill('lblAssistencia', lbl);
-      }
+        if (km) { check('chkAssistencia', true); fill('assistenciaKm', km); fill('lblAssistencia', lbl); }
+      })();
 
       // ── VIDROS ────────────────────────────────────────────────────
       // Linha na tabela: "Vidros, lanternas, faróis e retrovisores   Plano 3"
