@@ -1959,11 +1959,12 @@
       }
 
       // ── ASSISTÊNCIA 24H ──────────────────────────────────────────
-      // Prioridade: nome descritivo na mesma frase; fallback: "Plano X" direto
+      // Yelum usa "ASSISTENCIA - BASICO/INTERMEDIARIO/COMPLETO" (sem "24h")
+      // Fallback: "Assistência 24h Básica/Intermediária/Completa" ou "Plano X"
       (function() {
-        const base  = /Assist[eê]ncia\s+24\s*h[s]?.{0,60}B[aá]sic/i.test(text);
-        const inter = /Assist[eê]ncia\s+24\s*h[s]?.{0,60}Intermedi/i.test(text);
-        const comp  = /Assist[eê]ncia\s+24\s*h[s]?.{0,60}(Complet|Superior)/i.test(text);
+        const base  = /ASSISTENCIA\s*-\s*B[AÁ]SIC/i.test(text)  || /Assist[eê]ncia\s+24\s*h[s]?.{0,60}B[aá]sic/i.test(text);
+        const inter = /ASSISTENCIA\s*-\s*INTERMEDI/i.test(text) || /Assist[eê]ncia\s+24\s*h[s]?.{0,60}Intermedi/i.test(text);
+        const comp  = /ASSISTENCIA\s*-\s*(COMPLET|SUPERIOR)/i.test(text) || /Assist[eê]ncia\s+24\s*h[s]?.{0,60}(Complet|Superior)/i.test(text);
         const planoM = text.match(/Assist[eê]ncia\s+24\s*h[s]?\s+Plano\s+(\d)/i);
         let km, lbl;
         if (base) {
