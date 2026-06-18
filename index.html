@@ -1959,17 +1959,27 @@
       }
 
       // ── ASSISTÊNCIA 24H ──────────────────────────────────────────
-      // Linha na tabela: "Assistência 24 hs   Plano 2"
-      const assistM = text.match(/Assist[eê]ncia\s+24\s*h[s]?[\s\S]{0,80}?(Plano\s+\d)/i);
+      // Detecta nome descritivo (Básica/Intermediária/Completa) OU Plano X na mesma linha
+      const assistM = text.match(/Assist[eê]ncia\s+24\s*h[s]?[^\n]{0,100}?(B[aá]sic[ao]|Intermediári[ao]|Intermediari[ao]|Complet[ao]|Superior|Plano\s+\d)/i);
       if (assistM) {
         check('chkAssistencia', true);
-        const num = (assistM[1].match(/\d/) || ['2'])[0];
-        const mapaAssist = {
-          '1': ['200',       'Assistência 24h 200km'],
-          '2': ['500',       'Assistência 24h 500km'],
-          '3': ['Ilimitado', 'Assistência 24h Ilimitado'],
-        };
-        const [km, lbl] = mapaAssist[num] || mapaAssist['2'];
+        const token = assistM[1].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+        let km, lbl;
+        if (/^b.?sic/.test(token)) {
+          km = '200'; lbl = 'Assistência 24h — Básica (200km)';
+        } else if (/^intermedi/.test(token)) {
+          km = '500'; lbl = 'Assistência 24h — Intermediária (500km)';
+        } else if (/^complet|^superior/.test(token)) {
+          km = 'Ilimitado'; lbl = 'Assistência 24h — Completa (Ilimitado)';
+        } else {
+          const num = (token.match(/\d/) || ['2'])[0];
+          const mapaAssist = {
+            '1': ['200',       'Assistência 24h — Básica (200km)'],
+            '2': ['500',       'Assistência 24h — Intermediária (500km)'],
+            '3': ['Ilimitado', 'Assistência 24h — Completa (Ilimitado)'],
+          };
+          [km, lbl] = mapaAssist[num] || mapaAssist['2'];
+        }
         fill('assistenciaKm', km);
         fill('lblAssistencia', lbl);
       }
