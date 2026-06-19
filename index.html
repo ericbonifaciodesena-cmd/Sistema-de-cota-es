@@ -2116,12 +2116,12 @@
         parseSenaProposta(text);
         return;
       }
-      if (text.includes('Tokio Marine') || text.includes('TOKIO MARINE')) {
+      if (/allianz/i.test(text)) {
+        parseAllianz(text);
+      } else if (text.includes('Tokio Marine') || text.includes('TOKIO MARINE')) {
         parseTokioMarine(text);
       } else if (/yelum/i.test(text)) {
         parseYelum(text);
-      } else if (/allianz/i.test(text)) {
-        parseAllianz(text);
       } else if (text.includes('HDI SEGUROS') || text.includes('Hdi Auto Perfil') || /HDI\s+SEGUROS/i.test(text)) {
         parseHDI(text);
       } else if (/Bradesco Auto|BRADESCO|bradesco/i.test(text)) {
