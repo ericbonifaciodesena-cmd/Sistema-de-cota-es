@@ -4151,7 +4151,10 @@
         .replace(/[^a-zA-Z0-9\s]/g, '')
         .trim()
         .replace(/\s+/g, '_');
-      const nomeArq = nomeCliente + '.pdf';
+      const nomeSugerido = nomeCliente + '.pdf';
+      const nomeEditado = prompt('Nome do arquivo PDF:', nomeSugerido);
+      if (!nomeEditado) return;
+      const nomeArq = nomeEditado.trim().endsWith('.pdf') ? nomeEditado.trim() : nomeEditado.trim() + '.pdf';
       await saveToPropostas(doc.output('blob'), nomeArq);
     }
 
