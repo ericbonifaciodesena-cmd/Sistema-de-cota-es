@@ -2116,8 +2116,11 @@
         parseSenaProposta(text);
         return;
       }
-      // Remove "Seguradora Anterior: ..." para não confundir a detecção de marca
-      const _textDet = text.replace(/seguradora\s+anterior[^\n]{0,300}/gi, '');
+      // Remove contextos de seguradora anterior/congênere para não confundir a detecção de marca
+      // Ex: "Seguradora Anterior: 6190 - TOKIO MARINE" ou "5177 - ALLIANZ SEGUROS S.A."
+      const _textDet = text
+        .replace(/seguradora\s+anterior[^\n]{0,300}/gi, '')
+        .replace(/\b\d{4,6}\s*[-–]\s*(?:allianz|tokio\s*marine|yelum|hdi|bradesco|porto\s*seguro|su[ií][çc]a|mapfre|zurich)\b[^\n]{0,150}/gi, '');
       if (/allianz/i.test(_textDet)) {
         parseAllianz(text);
       } else if (/tokio\s*marine/i.test(_textDet)) {
