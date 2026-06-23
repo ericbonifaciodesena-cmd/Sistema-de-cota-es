@@ -2354,6 +2354,18 @@
         fill('lblCarroReserva', 'Carro Reserva');
       }
 
+      // Pequenos Reparos (martelinho, lataria)
+      if (/HDI\s+MARTELINHO|MARTELINHO\s+DE\s+OURO|PEQUENOS\s+REPAROS|LATARIA\s+E\s+PINTURA/i.test(text)) {
+        check('chkPequenosReparos', true);
+        fill('lblPequenosReparos', 'Pequenos Reparos');
+      }
+
+      // Proteção Rodas, Pneus e Suspensão (HDI chama "PROTEÇÃO CONTRA BURACOS")
+      if (/PROTE[ÇC][ÃA]O\s+CONTRA\s+BURACOS/i.test(text)) {
+        check('chkRodas', true);
+        fill('lblRodas', 'Proteção de Rodas, Pneus e Suspensão');
+      }
+
       // ── FRANQUIAS DE SERVIÇOS ─────────────────────────────────────
       const notasM = text.match(/\(\*1\)([\s\S]+?)(?=\(\*3\)|\(\*4\)|PARCELAMENTO|Parcelamento)/i);
       if (notasM) {
