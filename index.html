@@ -1151,7 +1151,7 @@
       }
 
       // ── IDENTIFICAÇÃO ──────────────────────────────────────────────
-      if (text.includes('Tokio Marine')) fill('seguradora', 'Tokio');
+      if (/tokio\s*marine/i.test(text)) fill('seguradora', 'Tokio');
 
       const numCotM = text.match(/Nº Cotação:\s*(\d+)/);
       if (numCotM) fill('numeroCotacao', numCotM[1]);
@@ -2116,11 +2116,13 @@
         parseSenaProposta(text);
         return;
       }
-      if (/allianz/i.test(text)) {
+      // Remove "Seguradora Anterior: ..." para não confundir a detecção de marca
+      const _textDet = text.replace(/seguradora\s+anterior[^\n]{0,300}/gi, '');
+      if (/allianz/i.test(_textDet)) {
         parseAllianz(text);
-      } else if (text.includes('Tokio Marine') || text.includes('TOKIO MARINE')) {
+      } else if (/tokio\s*marine/i.test(_textDet)) {
         parseTokioMarine(text);
-      } else if (/yelum/i.test(text)) {
+      } else if (/yelum/i.test(_textDet)) {
         parseYelum(text);
       } else if (text.includes('HDI SEGUROS') || text.includes('Hdi Auto Perfil') || /HDI\s+SEGUROS/i.test(text)) {
         parseHDI(text);
