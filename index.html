@@ -2355,7 +2355,7 @@
       }
 
       // Pequenos Reparos (martelinho, lataria)
-      if (/HDI\s+MARTELINHO|MARTELINHO\s+DE\s+OURO|PEQUENOS\s+REPAROS|LATARIA\s+E\s+PINTURA/i.test(text)) {
+      if (/HDI\s+MARTELINHO|MARTELINHO\s+DE\s+OURO|PEQUENOS\s+REPAROS|LATARIA\s+E\s+PINTURA|REPARO\s+ABAIXO\s+DA\s+FRANQUIA/i.test(text)) {
         check('chkPequenosReparos', true);
         fill('lblPequenosReparos', 'Pequenos Reparos');
       }
