@@ -2367,14 +2367,18 @@
       }
 
       // ── FRANQUIAS DE SERVIÇOS ─────────────────────────────────────
-      const notasM = text.match(/\(\*1\)([\s\S]+?)(?=\(\*3\)|\(\*4\)|PARCELAMENTO|Parcelamento)/i);
-      if (notasM) {
-        const bloco = notasM[1];
+      // Seção: "(*1) Item com franquia de R$ X. (*2) Item com franquia de R$ Y..."
+      // Captura tudo da seção de textos explicativos até o bloco de parcelamento
+      const texExpl = text.match(/IMPRESS[AÃ]O\s+DOS\s+TEXTOS\s+EXPLICATIVOS([\s\S]+?)(?=Parcelamento|PARCELAMENTO)/i)
+                   || text.match(/\(\*1\)([\s\S]+?)(?=Parcelamento|PARCELAMENTO)/i);
+      if (texExpl) {
+        const blocoLimpo = texExpl[1].replace(/\(\*\d+\)\s*/g, '');
         const itens = [];
-        const itemRe = /([^\.]+?)\s+com\s+franquia\s+de\s+R\$\s*([\d\.,]+)/gi;
+        const itemRe = /([^\.]+?)\s+com\s+franquia\s+de\s+R\$\s*([\d\.]+,\d{2})/gi;
         let m;
-        while ((m = itemRe.exec(bloco)) !== null) {
-          itens.push(m[1].trim() + ': R$ ' + m[2]);
+        while ((m = itemRe.exec(blocoLimpo)) !== null) {
+          const nome = m[1].trim();
+          if (nome.length > 2) itens.push(nome + ': R$ ' + m[2]);
         }
         if (itens.length) fill('franquias', itens.join(' | '));
       }
