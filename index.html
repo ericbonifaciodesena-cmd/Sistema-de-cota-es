@@ -2197,20 +2197,19 @@
       if (vigM) { fill('vigenciaInicio', toISO(vigM[1])); fill('vigenciaTermino', toISO(vigM[2])); }
 
       // ── SEGURADO ──────────────────────────────────────────────────
-      const nomeM = text.match(/Proponente:\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ\s]+?)\s+CPF:/i)
-                 || text.match(/Nome\s+do\s+Condutor:\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s]+?)(?=\s{2,}|\n)/i);
-      if (nomeM) {
-        const nome = nomeM[1].trim();
-        fill('nome', nome);
-        fill('condutorNome', nome);
-      }
+      // Proponente (segurado)
+      const propM = text.match(/Proponente:\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ\s]+?)\s+CPF:/i);
+      if (propM) fill('nome', propM[1].trim());
 
-      const cpfM = text.match(/CPF:\s*(\d{11}|\d{3}\.?\d{3}\.?\d{3}-?\d{2})/i);
-      if (cpfM) {
-        const cpf = fmtCPF(cpfM[1]);
-        fill('cpf', cpf);
-        fill('condutorCpf', cpf);
-      }
+      // CPFs: primeiro = proponente, segundo (se houver) = condutor diferente
+      const todosCpf = [...text.matchAll(/CPF:\s*(\d{11}|\d{3}\.?\d{3}\.?\d{3}-?\d{2})/gi)];
+      if (todosCpf[0]) { fill('cpf', fmtCPF(todosCpf[0][1])); fill('condutorCpf', fmtCPF(todosCpf[0][1])); }
+      if (todosCpf[1]) fill('condutorCpf', fmtCPF(todosCpf[1][1]));
+
+      // Condutor principal — busca "Nome do Condutor:" separado do proponente
+      const condNomeM = text.match(/Nome\s+do\s+Condutor:\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s]+?)(?=\s{2,}|\n|CPF)/i);
+      if (condNomeM) fill('condutorNome', condNomeM[1].trim());
+      else if (propM) fill('condutorNome', propM[1].trim()); // fallback: próprio segurado
 
       const nascM = text.match(/Data\s+de\s+Nasc\.:\s*([\d\/]+)/i);
       if (nascM) {
@@ -2327,10 +2326,13 @@
       }
 
       // ── COBERTURAS ADICIONAIS ─────────────────────────────────────
-      const assistM = text.match(/ESPECIAL\s+AUTO\s*-\s*(\d+)\s*KM/i)
-                   || text.match(/VIP\s+AUTO\s*-\s*SEM\s+LIMITE\s+KM/i);
-      if (assistM) {
-        const km = assistM[1] || 'Ilimitado';
+      // Assistência: detecta via linha da tabela OU via footnote "Guincho NNN KM"
+      const assistKmM   = text.match(/ESPECIAL\s+AUTO\s*-\s*(\d+)\s*KM/i)
+                       || text.match(/Guincho\s+(\d+)\s*KM\s+para\s+Sinistro/i);
+      const assistIlimM = text.match(/VIP\s+AUTO\s*-\s*SEM\s+LIMITE\s+KM/i)
+                       || text.match(/Guincho\s+Sem\s+Limite\s+de\s+KM/i);
+      if (assistKmM || assistIlimM) {
+        const km = assistIlimM ? 'Ilimitado' : assistKmM[1];
         check('chkAssistencia', true);
         fill('assistenciaKm', km);
         fill('lblAssistencia', km === 'Ilimitado' ? 'Assistência 24h — Ilimitada' : `Assistência 24h — ${km}km`);
