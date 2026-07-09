@@ -2211,18 +2211,24 @@
       if (condNomeM) fill('condutorNome', condNomeM[1].trim());
       else if (propM) fill('condutorNome', propM[1].trim()); // fallback: próprio segurado
 
+      // "Data de Nasc." pertence ao condutor (seção Avaliação de Risco)
+      // Copia para o proponente só se for o próprio segurado (mesmo CPF)
       const nascM = text.match(/Data\s+de\s+Nasc\.:\s*([\d\/]+)/i);
       if (nascM) {
         const dn = toISO(nascM[1]);
-        fill('dataNasc', dn);
         fill('condutorDataNasc', dn);
+        const _cpfSeg  = document.getElementById('cpf')?.value;
+        const _cpfCond = document.getElementById('condutorCpf')?.value;
+        if (_cpfSeg && _cpfCond && _cpfSeg === _cpfCond) fill('dataNasc', dn);
       }
 
       const ecM = text.match(/Estado\s+Civil\s+(Casado|Solteiro|Divorciado|Vi[uú]vo|Separado)[^\n]*/i);
       if (ecM) {
         const ec = ecM[1].trim();
-        fill('estadoCivil', ec);
         fill('condutorEstadoCivil', ec);
+        const _cpfSeg2  = document.getElementById('cpf')?.value;
+        const _cpfCond2 = document.getElementById('condutorCpf')?.value;
+        if (_cpfSeg2 && _cpfCond2 && _cpfSeg2 === _cpfCond2) fill('estadoCivil', ec);
       }
 
       // "Cob Demais Condutores Resid entre 18Até 25Anos ... Nao/Sim"
