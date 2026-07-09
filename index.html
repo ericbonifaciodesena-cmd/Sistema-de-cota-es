@@ -2269,10 +2269,10 @@
         const linhaCasco = text.match(/CASCO\s+100,00%\s+FIPE\s+([\d\.,]+)\s+([\d\.,]+)\s+([\d\.,]+)\s+([\d\.,]+)/i);
         if (linhaCasco) document.getElementById('franquiaValor').value = 'R$ ' + linhaCasco[4];
       } else {
-        // Colunas novo formato: CASCO | 100,00% FIPE | <Franquia> | <Prêmio>
-        // grupo 1 = Franquia, grupo 2 = Prêmio
+        // Colunas novo formato: CASCO | 100,00% FIPE | <Prêmio> | <Franquia>
+        // grupo 1 = Prêmio, grupo 2 = Franquia
         const cascoM = text.match(/CASCO\s+100,00%\s+FIPE\s+([\d\.,]+)\s+([\d\.,]+)/i);
-        if (cascoM) document.getElementById('franquiaValor').value = 'R$ ' + cascoM[1];
+        if (cascoM) document.getElementById('franquiaValor').value = 'R$ ' + cascoM[2];
       }
 
       // ── COBERTURAS ESSENCIAIS ─────────────────────────────────────
