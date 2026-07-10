@@ -2122,14 +2122,14 @@
         .replace(/seguradora\s+anterior[^\n]{0,300}/gi, '')
         .replace(/companhia\s+anterior[^\n]{0,300}/gi, '')
         .replace(/\b\d{4,6}\s*[-–]\s*(?:allianz|tokio\s*marine|yelum|hdi|bradesco|porto\s*seguro|su[ií][çc]a|mapfre|zurich)\b[^\n]{0,150}/gi, '');
-      if (/allianz/i.test(_textDet)) {
-        parseAllianz(text);
-      } else if (/tokio\s*marine/i.test(_textDet)) {
-        parseTokioMarine(text);
-      } else if (text.includes('HDI SEGUROS') || text.includes('Hdi Auto Perfil') || /HDI\s+SEGUROS/i.test(text)) {
+      if (text.includes('HDI SEGUROS') || text.includes('Hdi Auto Perfil') || /HDI\s+SEGUROS/i.test(text)) {
         parseHDI(text);
       } else if (/yelum/i.test(_textDet)) {
         parseYelum(text);
+      } else if (/allianz/i.test(_textDet)) {
+        parseAllianz(text);
+      } else if (/tokio\s*marine/i.test(_textDet)) {
+        parseTokioMarine(text);
       } else if (/Bradesco Auto|BRADESCO|bradesco/i.test(text)) {
         parseBradesco(text);
       } else if (text.includes('PORTO SEGURO') || text.includes('Porto Seguro') || text.includes('PortoSeguro') ||
