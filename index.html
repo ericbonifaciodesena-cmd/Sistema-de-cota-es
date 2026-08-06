@@ -3485,7 +3485,8 @@
       if (appM) { check('chkApp', true); fill('valApp', 'R$ ' + appM[1]); }
 
       // ── COBERTURAS ADICIONAIS ──────────────────────────────────
-      const assM = text.match(/ASSIST[EÊ]NCIA\s+24\s*HS?\s+VIP\s+(\d+)\s*Km/i);
+      const assM = text.match(/ASSIST[EÊ]NCIA\s+24\s*HS?\s+(?:VIP|B[ÁA]SICA|COMPLETA|INTERMEDI[AÁ]RIA)\s+(\d+)\s*Km/i)
+                || text.match(/ASSIST[EÊ]NCIA\s+24\s*HS?\s+(\d+)\s*Km/i);
       const reboqueIlimM = /Km\s+ilimitado\s+para\s+Sinistro/i.test(text);
       if (assM || reboqueIlimM) {
         check('chkAssistencia', true);
