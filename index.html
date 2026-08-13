@@ -1215,15 +1215,25 @@
           }
         }
       } else {
-        // Fallback geral: primeiro CPF + nome antes dele
-        const cpfFb = text.match(/(\d{3}\.\d{3}\.\d{3}-\d{2})/);
-        if (cpfFb) {
-          fill('cpf', cpfFb[1]); fill('condutorCpf', cpfFb[1]);
-          const nomeFb = text.match(/([A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][A-ZÀÁÂÃÉÊÍÓÔÕÚÇ\s]+?)\s+\d{3}\.\d{3}\.\d{3}-\d{2}/);
-          if (nomeFb) { fill('nome', nomeFb[1].trim()); fill('condutorNome', nomeFb[1].trim()); }
+        // Sem perfil (PJ ou condutor não determinado): CNPJ/CPF antes de "Não é possível"
+        const semPerfilDocM = text.match(/(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}|\d{3}\.\d{3}\.\d{3}-\d{2})\s+Não\s+[eé]\s+poss[íi]vel/i);
+        if (semPerfilDocM) {
+          fill('cpf', semPerfilDocM[1]);
+          // Nome: sequência de palavras em MAIÚSCULAS imediatamente antes do CPF/CNPJ
+          const beforeDoc = text.slice(0, text.indexOf(semPerfilDocM[1]));
+          const nomeM = beforeDoc.match(/([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ]{2,}(?:\s+[A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ]{2,})+)\s*$/);
+          if (nomeM) fill('nome', nomeM[1].trim());
+        } else {
+          // Fallback geral: primeiro CPF + nome antes dele
+          const cpfFb = text.match(/(\d{3}\.\d{3}\.\d{3}-\d{2})/);
+          if (cpfFb) {
+            fill('cpf', cpfFb[1]); fill('condutorCpf', cpfFb[1]);
+            const nomeFb = text.match(/([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ][A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ\s]+?)\s+\d{3}\.\d{3}\.\d{3}-\d{2}/);
+            if (nomeFb) { fill('nome', nomeFb[1].trim()); fill('condutorNome', nomeFb[1].trim()); }
+          }
+          const ecFb = text.match(/Próprio Segurado\s+(Solteiro|Casado|Divorciado|Viúvo|Separado)/i);
+          if (ecFb) { fill('estadoCivil', ecFb[1]); fill('condutorEstadoCivil', ecFb[1]); }
         }
-        const ecFb = text.match(/Próprio Segurado\s+(Solteiro|Casado|Divorciado|Viúvo|Separado)/i);
-        if (ecFb) { fill('estadoCivil', ecFb[1]); fill('condutorEstadoCivil', ecFb[1]); }
       }
 
       // Jovem condutor
