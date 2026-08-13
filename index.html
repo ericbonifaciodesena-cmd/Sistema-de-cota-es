@@ -2122,7 +2122,7 @@
         .replace(/seguradora\s+anterior[^\n]{0,300}/gi, '')
         .replace(/companhia\s+anterior[^\n]{0,300}/gi, '')
         .replace(/\b\d{4,6}\s*[-–]\s*(?:allianz|tokio\s*marine|yelum|hdi|bradesco|porto\s*seguro|su[ií][çc]a|mapfre|zurich)\b[^\n]{0,150}/gi, '');
-      if (text.includes('HDI SEGUROS') || text.includes('Hdi Auto Perfil') || /HDI\s+SEGUROS/i.test(text)) {
+      if (_textDet.includes('HDI SEGUROS') || _textDet.includes('Hdi Auto Perfil') || /HDI\s+SEGUROS/i.test(_textDet)) {
         parseHDI(text);
       } else if (/yelum/i.test(_textDet)) {
         parseYelum(text);
