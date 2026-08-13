@@ -1252,8 +1252,9 @@
       }
 
       // Uso
-      const usoTokioM = text.match(/Tipo\s+de\s+utiliza[çc][aã]o\s+([^\n\r]+)/i);
-      if (usoTokioM && /lazer|particular|loco/i.test(usoTokioM[1])) fill('uso', 'Particular');
+      const usoTokioM = text.match(/Uso\s+ve[íi]culo:\s*([^\n\r]+)/i);
+      if (usoTokioM && /lazer|loco/i.test(usoTokioM[1])) fill('uso', 'Particular');
+      else if (usoTokioM && /comercial/i.test(usoTokioM[1])) fill('uso', 'Comercial');
       else if (/\bParticular\b/i.test(text)) fill('uso', 'Particular');
 
       // ── VEÍCULO ────────────────────────────────────────────────────
