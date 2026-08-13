@@ -1251,10 +1251,10 @@
         if (todosCep.length) fill('cep', todosCep[todosCep.length - 1][1]);
       }
 
-      // Uso — "Uso veículo: ..." ou "Tipo de utilização   CODIGO Tipo - descricao"
+      // Uso — "Uso veículo: ..." ou código SUSEP "NNNNNN-N Comercial/Particular/Lazer"
       const usoTokioM = text.match(/Uso\s+ve[íi]culo:\s*([^\n\r]+)/i)
-                     || text.match(/Tipo\s+de\s+utiliza[çc][aã]o\s+\d[\d\-\.]+\s+([^\n\r]+)/i);
-      if (usoTokioM && /lazer|loco/i.test(usoTokioM[1])) fill('uso', 'Particular');
+                     || text.match(/\d{4,8}-\d\s+(Comercial|Particular|Lazer[^\n\r]*)/i);
+      if (usoTokioM && /lazer|loco|particular/i.test(usoTokioM[1])) fill('uso', 'Particular');
       else if (usoTokioM && /comercial/i.test(usoTokioM[1])) fill('uso', 'Comercial');
       else if (/\bParticular\b/i.test(text)) fill('uso', 'Particular');
 
