@@ -1219,6 +1219,7 @@
         const semPerfilDocM = text.match(/(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}|\d{3}\.\d{3}\.\d{3}-\d{2})\s+Não\s+[eé]\s+poss[íi]vel/i);
         if (semPerfilDocM) {
           fill('cpf', semPerfilDocM[1]);
+          fill('condutorNome', 'Condutor indeterminado');
           // Nome: sequência de palavras em MAIÚSCULAS imediatamente antes do CPF/CNPJ
           const beforeDoc = text.slice(0, text.indexOf(semPerfilDocM[1]));
           const nomeM = beforeDoc.match(/([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ]{2,}(?:\s+[A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ]{2,})+)\s*$/);
@@ -1250,7 +1251,9 @@
       }
 
       // Uso
-      if (/\bParticular\b/i.test(text)) fill('uso', 'Particular');
+      const usoTokioM = text.match(/Tipo\s+de\s+utiliza[çc][aã]o\s+([^\n\r]+)/i);
+      if (usoTokioM && /lazer|particular|loco/i.test(usoTokioM[1])) fill('uso', 'Particular');
+      else if (/\bParticular\b/i.test(text)) fill('uso', 'Particular');
 
       // ── VEÍCULO ────────────────────────────────────────────────────
       // Placa: primeiro resultado (Mercosul ou clássica)
