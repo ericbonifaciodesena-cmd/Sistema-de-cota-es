@@ -2137,6 +2137,8 @@
       const _textDet = text
         .replace(/seguradora\s+anterior[^\n]{0,300}/gi, '')
         .replace(/companhia\s+anterior[^\n]{0,300}/gi, '')
+        .replace(/renova\s+ap[oó]lice[^\n]{0,400}/gi, '')
+        .replace(/\(\d{3,6}\)\s*(?:allianz|tokio\s*marine|yelum|hdi|bradesco|porto\s*seguro|su[ií][çc]a|mapfre|zurich)[^\n]{0,150}/gi, '')
         .replace(/\b\d{4,6}\s*[-–]\s*(?:allianz|tokio\s*marine|yelum|hdi|bradesco|porto\s*seguro|su[ií][çc]a|mapfre|zurich)\b[^\n]{0,150}/gi, '');
       if (_textDet.includes('HDI SEGUROS') || _textDet.includes('Hdi Auto Perfil') || /HDI\s+SEGUROS/i.test(_textDet)) {
         parseHDI(text);
