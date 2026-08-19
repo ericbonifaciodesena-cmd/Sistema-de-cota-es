@@ -3487,7 +3487,7 @@
         fill('valColisao', '100% FIPE');
       }
 
-      const franqPrincM = text.match(/Colis[aã]o\/Inc[eê]ndio\/Roubo[\s\S]{0,200}?D\s*-\s*([\d\.,]+)/i);
+      const franqPrincM = text.match(/Colis[aã]o\/Inc[eê]ndio\/Roubo[\s\S]{0,200}?[A-Z]\s*-\s*([\d\.,]+)/i);
       if (franqPrincM) fill('franquiaValor', 'R$ ' + franqPrincM[1]);
 
       const dcM = text.match(/RCV\s*-\s*Danos\s+Corporais\s+([\d\.,]+)/i);
