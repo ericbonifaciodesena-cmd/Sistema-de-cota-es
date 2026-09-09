@@ -2149,6 +2149,10 @@
         parseYelum(text);
       } else if (/allianz/i.test(_textDet)) {
         parseAllianz(text);
+      } else if (/\bAzul\s+Seguros\b|\bAZUL\s+SEGUROS\b/i.test(_textDet) ||
+                 /\bAUTO\s+(?:MULHER|S[EÊ]NIOR|PREMIUM|TRADICIONAL)\b/i.test(_textDet) ||
+                 /\bPORTO\s+SEGURO\b/i.test(_textDet) || /61\.198\.164/.test(_textDet)) {
+        parsePortoSeguro(text);
       } else if (/tokio\s*marine/i.test(_textDet)) {
         parseTokioMarine(text);
       } else if (/Bradesco Auto|BRADESCO|bradesco/i.test(text)) {
