@@ -1097,6 +1097,15 @@
         }
 
         showStatus('Analisando dados…');
+
+        // Limpa o formulário antes de preencher com o novo PDF
+        const formEl = document.getElementById('cotacaoForm');
+        if (formEl) {
+          formEl.querySelectorAll('input[type="text"], input[type="date"], input[type="number"], textarea').forEach(el => el.value = '');
+          formEl.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
+          formEl.querySelectorAll('input[type="checkbox"]').forEach(el => el.checked = false);
+        }
+
         parsePDF(fullText);
 
       } catch (err) {
