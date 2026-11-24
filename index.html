@@ -2141,8 +2141,8 @@
         .replace(/seguradora\s+anterior[^\n]{0,300}/gi, '')
         .replace(/companhia\s+anterior[^\n]{0,300}/gi, '')
         .replace(/renova\s+ap[oó]lice[^\n]{0,400}/gi, '')
-        .replace(/\(\d{3,6}\)\s*(?:allianz|tokio\s*marine|yelum|hdi|bradesco|porto\s*seguro|su[ií][çc]a|mapfre|zurich)[^\n]{0,150}/gi, '')
-        .replace(/\b\d{4,6}\s*[-–]\s*(?:allianz|tokio\s*marine|yelum|hdi|bradesco|porto\s*seguro|su[ií][çc]a|mapfre|zurich)\b[^\n]{0,150}/gi, '');
+        .replace(/\(\d{3,6}\)\s*(?:allianz|tokio\s*marine|yelum|hdi|bradesco|porto\s*seguro|su[ií][çc]a|mapfre|zurich|suhai)[^\n]{0,150}/gi, '')
+        .replace(/\b\d{4,6}\s*[-–]\s*(?:allianz|tokio\s*marine|yelum|hdi|bradesco|porto\s*seguro|su[ií][çc]a|mapfre|zurich|suhai)\b[^\n]{0,150}/gi, '');
       if (_textDet.includes('HDI SEGUROS') || _textDet.includes('Hdi Auto Perfil') || /HDI\s+SEGUROS/i.test(_textDet)) {
         parseHDI(text);
       } else if (/yelum/i.test(_textDet)) {
@@ -2168,6 +2168,8 @@
         parseMapfre(text);
       } else if (/ZURICH|Zurich/i.test(text)) {
         parseZurich(text);
+      } else if (/SUHAI/i.test(_textDet)) {
+        parseSuhai(text);
       } else {
         alert('Seguradora não reconhecida. Por favor preencha os campos manualmente.');
       }
@@ -3573,6 +3575,199 @@
         fill('boletoParcelas', '1');  fill('boletoValor',  val);
         fill('debitoParcelas', '10'); fill('debitoValor',  fmt(10));
         fill('cartaoParcelas', '12'); fill('cartaoValor',  fmt(12));
+      }
+
+      toggleScreen('form');
+    }
+
+    // ── Parser Suhai Seguradora ───────────────────────────────────
+    function parseSuhai(text) {
+      window._debugText = text;
+
+      function fill(id, value) {
+        if (value === null || value === undefined || value === '') return;
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.value = value;
+      }
+      function check(id, state) {
+        const el = document.getElementById(id);
+        if (el) el.checked = !!state;
+      }
+      function toISO(dmy) {
+        if (!dmy) return '';
+        const [d, m, a] = dmy.split('/');
+        return a + '-' + m + '-' + d;
+      }
+      function fmtCPF(raw) {
+        const d = raw.replace(/\D/g, '');
+        if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+        return raw;
+      }
+
+      // ── IDENTIFICAÇÃO ──────────────────────────────────────────
+      fill('seguradora', 'Suhai');
+
+      const cotM = text.match(/C[aá]lculo\s+N[ºo°][:\s]+([\d]+\/[\d]+)/i);
+      if (cotM) fill('numeroCotacao', cotM[1]);
+
+      const vigM = text.match(/Vig[eê]ncia\s+Proposta[:\s]+das\s+24h\s+de\s+([\d]{2}\/[\d]{2}\/[\d]{4})\s+[àa]s\s+24h\s+de\s+([\d]{2}\/[\d]{2}\/[\d]{4})/i);
+      if (vigM) { fill('vigenciaInicio', toISO(vigM[1])); fill('vigenciaTermino', toISO(vigM[2])); }
+
+      // ── SEGURADO (PROPONENTE) ───────────────────────────────────
+      // Nome: ALL-CAPS name before "Física" or "Jurídica"
+      const nomeM = text.match(/([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ]{2,}(?:[\s\n]+[A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ]{2,})+)[\s\n]+(F[íi]sica|Jur[íi]dica)/);
+      if (nomeM) fill('nome', nomeM[1].replace(/\s+/g, ' ').trim());
+
+      // CPF: 11 digits near Física/Jurídica (same row in PDF)
+      const cpfM = text.match(/(?:F[íi]sica|Jur[íi]dica)\s+(\d{11})/i)
+                || text.match(/DADOS DO PROPONENTE[\s\S]{0,600}?(\d{11})/i);
+      if (cpfM) fill('cpf', fmtCPF(cpfM[1]));
+
+      const sexoM = text.match(/Sexo\s+(Feminino|Masculino)/i);
+      if (sexoM) fill('sexo', sexoM[1]);
+
+      // Nascimento: first dd/mm/yyyy date that belongs to proponente section
+      const nascDates = [...text.matchAll(/([\d]{2}\/[\d]{2}\/[\d]{4})/g)].map(m => m[1]);
+      // Vigência dates are dd/mm/yyyy too — skip them and take the first personal date
+      const vigDate1 = vigM ? vigM[1] : null;
+      const vigDate2 = vigM ? vigM[2] : null;
+      const personalDates = nascDates.filter(d => d !== vigDate1 && d !== vigDate2);
+      if (personalDates[0]) fill('dataNasc', toISO(personalDates[0]));
+
+      const ecRawM = text.match(/Estado\s+Civil\s*[\n\r\s]*(Solteiro|Casado|Divorciado|Vi[úu]vo|Uni[aã]o\s+Est[aá]vel)/i)
+                 || text.match(/(Casado\/Uni[aã]o\s+Est[aá]vel|Uni[aã]o\s+Est[aá]vel|Solteiro|Casado|Divorciado|Vi[úu]vo)/i);
+      if (ecRawM) {
+        const ec = ecRawM[1];
+        const ecVal = /casado|uni[aã]o/i.test(ec) ? 'Casado(a)'
+                    : /solteiro/i.test(ec) ? 'Solteiro(a)'
+                    : /divorciado/i.test(ec) ? 'Divorciado(a)'
+                    : /vi[úu]vo/i.test(ec) ? 'Viúvo(a)'
+                    : ec;
+        fill('estadoCivil', ecVal);
+      }
+
+      // CEP pernoite: "Reg. Tarif./CEP Pernoite ... NNN/NNNNNNNN"
+      const cepM = text.match(/Reg\.\s*Tarif\.\/CEP\s+Pernoite[\s\S]{0,200}?\d+\/([\d]{8})/i);
+      if (cepM) fill('cep', cepM[1].replace(/(\d{5})(\d{3})/, '$1-$2'));
+
+      // ── CONDUTOR PRINCIPAL ─────────────────────────────────────
+      const condCpfM = text.match(/CPF\s+Condutor[\s\S]{0,200}?(\d{11})/i);
+      if (condCpfM) fill('condutorCpf', fmtCPF(condCpfM[1]));
+
+      // Nome condutor: ALL-CAPS name after CPF condutor, before Masculino/Feminino
+      const condNomeM = text.match(/CPF\s+Condutor[\s\S]{0,300}?(\d{11})\s*[\s\n]+([A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ]{2,}(?:[\s\n]+[A-ZÁÉÍÓÚÀÂÊÔÃÕÜÇ]{2,})+?)[\s\n]+(Masculino|Feminino)/);
+      if (condNomeM) fill('condutorNome', condNomeM[2].replace(/\s+/g, ' ').trim());
+
+      const condSexoM = text.match(/CPF\s+Condutor[\s\S]{0,400}?(Masculino|Feminino)/i);
+      if (condSexoM) fill('condutorSexo', condSexoM[1]);
+
+      // Nascimento condutor: after "N/A" (Vacina: N/A)
+      const condNascM = text.match(/N\/A\s*[\n\r\s]*([\d]{2}\/[\d]{2}\/[\d]{4})/i);
+      if (condNascM) fill('condutorDataNasc', toISO(condNascM[1]));
+
+      const condEcM = text.match(/CPF\s+Condutor[\s\S]{0,400}?(Casado\/Uni[aã]o\s+Est[aá]vel|Uni[aã]o\s+Est[aá]vel|Casado|Solteiro|Divorciado|Vi[úu]vo)/i);
+      if (condEcM) {
+        const ecVal = /casado|uni[aã]o/i.test(condEcM[1]) ? 'Casado(a)'
+                    : /solteiro/i.test(condEcM[1]) ? 'Solteiro(a)'
+                    : /divorciado/i.test(condEcM[1]) ? 'Divorciado(a)'
+                    : /vi[úu]vo/i.test(condEcM[1]) ? 'Viúvo(a)'
+                    : condEcM[1];
+        fill('condutorEstadoCivil', ecVal);
+      }
+
+      // ── VEÍCULO ────────────────────────────────────────────────
+      const fipeM = text.match(/C[oó]digo\s+FIPE\s*([\d]{6}-\d)/i);
+      if (fipeM) fill('codigoFipe', fipeM[1]);
+
+      const marcaM = text.match(/Marca\s+([^\n\r\t]{2,30?}?)(?:\s{2,}|[\n\r])/i);
+      if (marcaM) fill('marca', marcaM[1].trim());
+
+      const modeloM = text.match(/Modelo\s+do\s+Ve[íi]culo\s+([^\n\r]+?)(?:\s{2,}|[\n\r]|Ano\s+Fabr)/i);
+      if (modeloM) fill('modelo', modeloM[1].trim());
+
+      const anoM = text.match(/Ano\s+Fabr\.?\/Modelo\s+(\d{4})\/(\d{4})/i);
+      if (anoM) fill('ano', anoM[2]); // ano modelo
+
+      const usoM = text.match(/Utiliza[çc][aã]o\s+(Particular|Comercial|Lazer)/i);
+      if (usoM) fill('uso', /lazer|particular/i.test(usoM[1]) ? 'Particular' : usoM[1]);
+
+      // Placa: in "Placa Chassi" row
+      const placaM = text.match(/Disp\.\s+Placa\s+Chassi[\s\S]{0,100}?([A-Z]{3}[\dA-Z][\dA-Z][\dA-Z]{2}|[A-Z]{3}\d{4})/i)
+                  || text.match(/Placa\s+Chassi[\s\S]{0,100}?([A-Z]{3}[\dA-Z][\dA-Z][\dA-Z]{2}|[A-Z]{3}\d{4})/i);
+      if (placaM) fill('placa', placaM[1]);
+
+      // ── COBERTURAS ─────────────────────────────────────────────
+      // Compreensiva contratada?
+      const comprContM = !/Compreensiva\s+N[ãa]o\s+Contratado/i.test(text)
+                      && /Compreensiva\s+(?!N[ãa]o)/i.test(text);
+      if (comprContM) {
+        check('chkColisao', true);
+        fill('lblColisao', 'Compreensiva');
+        fill('valColisao', '100% FIPE');
+      }
+
+      // Ind. Integral Roubo/Furto
+      const rouboM = text.match(/Ind\.\s+Integral\s+por\s+Roubo\/Furto\s+([\d]+%\s+Fipe|[\d\.,]+)/i);
+      if (rouboM && !/N[ãa]o\s+Contratado/i.test(rouboM[0])) {
+        if (!comprContM) {
+          check('chkColisao', true);
+          fill('lblColisao', 'Ind. Integral Roubo/Furto');
+          fill('valColisao', '100% FIPE');
+        }
+      }
+
+      // RCF Danos
+      const danosMatM = text.match(/RCF\s*-\s*Danos\s+Materiais\s+([\d\.,]+)/i);
+      if (danosMatM) { check('chkDanosMat', true); fill('valDanosMat', 'R$ ' + danosMatM[1]); }
+
+      const danosCorpM = text.match(/RCF\s*-\s*Danos\s+Corporais\s+([\d\.,]+)/i);
+      if (danosCorpM) { check('chkDanosCorp', true); fill('valDanosCorp', 'R$ ' + danosCorpM[1]); }
+
+      const danosMorM = text.match(/RCF\s*-\s*Danos\s+Morais\s+([\d\.,]+)/i);
+      if (danosMorM) { check('chkDanosMorais', true); fill('valDanosMorais', 'R$ ' + danosMorM[1]); }
+
+      // Assistência 24h
+      const assM = text.match(/Assist[eê]ncia\s+24\s+horas\s+Plano\s+\d+\s+Guincho\s+(\d+)\s*km/i)
+                || text.match(/Guincho\s+(\d+)\s*[Kk]m/i);
+      if (assM) {
+        check('chkAssistencia', true);
+        fill('assistenciaKm', assM[1]);
+        fill('lblAssistencia', 'Assistência 24h — ' + assM[1] + 'km');
+      }
+
+      // Franquia
+      const franqM = text.match(/Franquia\s+Perdas?\s+Parciais?\s+([^\n\r]+)/i);
+      if (franqM && !/N[ãa]o\s+se\s+aplica/i.test(franqM[1])) {
+        fill('franquiaValor', franqM[1].trim());
+      }
+
+      // ── PRÊMIO E PAGAMENTO ─────────────────────────────────────
+      const premioTotalM = text.match(/Pr[eê]mio\s+total[,]?\s+com\s+IOF\s+([\d\.,]+)/i);
+      if (premioTotalM) {
+        const val = premioTotalM[1];
+        const num = parseFloat(val.replace(/\./g, '').replace(',', '.'));
+        fill('premioTotal', 'R$ ' + val);
+        fill('aVista', 'R$ ' + val);
+
+        // Parcelas sem juros: search table rows "N VALOR TOTAL 0,000000"
+        const semJurosRows = [...text.matchAll(/(\d+)\s+([\d\.,]+)\s+[\d\.,]+\s+0,000000/g)];
+        const maxSemJuros = semJurosRows.length > 0
+          ? parseInt(semJurosRows[semJurosRows.length - 1][1])
+          : 1;
+        const valorSemJuros = semJurosRows.length > 0
+          ? semJurosRows[semJurosRows.length - 1][2]
+          : val;
+
+        // Parcela 12
+        const parc12M = text.match(/12\s+([\d\.,]+)\s+[\d\.,]+\s+[\d\.,]+/);
+        const val12 = parc12M ? parc12M[1] : (num / 12).toFixed(2).replace('.', ',');
+
+        fill('boletoParcelas', String(maxSemJuros));
+        fill('boletoValor', valorSemJuros);
+        fill('cartaoParcelas', '12');
+        fill('cartaoValor', val12);
       }
 
       toggleScreen('form');
